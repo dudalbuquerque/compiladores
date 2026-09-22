@@ -63,7 +63,7 @@ IN: 'IN' | 'in';
 NOT: 'NOT' | 'not';
 
 // types e id
-BOOLEAN : 'TRUE' | 'FALSE' | 'true' | 'false' ;
+BOOLEAN : 'TRUE' | 'FALSE' | 'true' | 'false' | 'True' |  'False' ;
 ID : [a-z] [a-z0-9_]* ;
 INT : '-'? DIGIT+ ;
 FLOAT : '-'? DIGIT+ '.' DIGIT+ ;
