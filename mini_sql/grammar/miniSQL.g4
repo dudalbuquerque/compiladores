@@ -14,7 +14,7 @@ options { caseInsensitive = true; }
 
 program : query+ EOF;
 
-query : SELECT selectList FROM ID (WHERE condition)? END;
+query : FROM ID SELECT selectList  (WHERE condition)? END;
 
 
 // Permite selecionar múltiplos campos (ex: a, b, c) ou '*'
@@ -51,19 +51,19 @@ value: ID
 
 
 //palavras chaves
-SELECT : 'SELECT' ;
-WHERE : 'WHERE' ;
-FROM : 'FROM' ;
+SELECT : 'SELECT' | 'select';
+WHERE : 'WHERE' | 'where';
+FROM : 'FROM' | 'from';
 
 
 // operadores lógicos, precisam estar antes do ID por regra do lexer
-AND : 'AND' ;
-OR : 'OR' ;
-IN: 'IN' ;
-NOT: 'NOT';
+AND : 'AND' | 'and';
+OR : 'OR' | 'or';
+IN: 'IN' | 'in';
+NOT: 'NOT' | 'not';
 
 // types e id
-BOOLEAN : 'TRUE' | 'FALSE' ;
+BOOLEAN : 'TRUE' | 'FALSE' | 'true' | 'false' ;
 ID : [a-z] [a-z0-9_]* ;
 INT : '-'? DIGIT+ ;
 FLOAT : '-'? DIGIT+ '.' DIGIT+ ;

@@ -14,49 +14,54 @@ fn parse_error(input: &str) -> bool {
 
 #[test]
 fn test_missing_select_list() {
-    assert!(parse_error("SELECT FROM users;"));
+    assert!(parse_error("FROM users SELECT;"));
 }
 
 #[test]
 fn test_missing_select() {
-    assert!(parse_error("name FROM users;"));
+    assert!(parse_error("FROM users name;"));
 }
 
 #[test]
 fn test_missing_from() {
-    assert!(parse_error("SELECT name users;"));
+    assert!(parse_error("SELECT name;"));
 }
 
 #[test]
 fn test_missing_where_condition() {
-    assert!(parse_error("SELECT name FROM users WHERE;"));
+    assert!(parse_error("FROM users SELECT name WHERE;"));
 }
 
 #[test]
 fn test_typo_in_from() {
     assert!(parse_error(
-        "SELECT name form users WHERE age > 18 AND active = TRUE;"
+        "FORM users SELECT name WHERE age > 18 AND active = TRUE;"
     ));
 }
 
 #[test]
 fn test_invalid_table_syntax() {
     assert!(parse_error(
-        "SELECT name FROM users()_uugf WHERE age > 18 OR active = TRUE;"
+        "FROM users()_uugf SELECT name WHERE age > 18 OR active = TRUE;"
     ));
 }
 
 #[test]
 fn test_typo_in_select() {
-    assert!(parse_error("selec * from users;"));
+    assert!(parse_error("FROM users SELEC *;"));
 }
 
 #[test]
 fn test_identifier_start_with_number() {
-    assert!(parse_error("SELECT name FROM 123users;"));
+    assert!(parse_error("FROM 123users SELECT name;"));
 }
 
 #[test]
 fn test_invalid_identifier_start() {
-    assert!(parse_error("SELECT name FROM _users;"));
+    assert!(parse_error("FROM _users SELECT name;"));
+}
+
+#[test]
+fn test_old_select_syntax() {
+    assert!(parse_error("SELECT name FROM users;"));
 }

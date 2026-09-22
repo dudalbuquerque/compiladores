@@ -14,37 +14,47 @@ fn parse(input: &str) -> bool {
 
 #[test]
 fn test_select_all() {
-    assert!(parse("SELECT * FROM users;"));
+    assert!(parse("FROM users SELECT *;"));
+}
+
+#[test]
+fn test_select_all_minus() {
+    assert!(parse("from users select *;"));
 }
 
 #[test]
 fn test_select_columns() {
-    assert!(parse("SELECT name, age FROM users;"));
+    assert!(parse("FROM users SELECT name, age;"));
 }
 
 #[test]
 fn test_select_with_where() {
-    assert!(parse("SELECT name FROM users WHERE age > 18;"));
+    assert!(parse("FROM users SELECT name WHERE age > 18;"));
+}
+
+#[test]
+fn test_from_users() {
+    assert!(parse("from users select name where age > 18;"));
 }
 
 #[test]
 fn test_select_with_and() {
     assert!(parse(
-        "SELECT name FROM users WHERE age > 18 AND active = TRUE;"
+        "FROM users SELECT name WHERE age > 18 AND active = TRUE;"
     ));
 }
 
 #[test]
 fn test_select_with_or() {
     assert!(parse(
-        "SELECT name FROM users WHERE age > 18 OR active = TRUE;"
+        "FROM users SELECT name WHERE age > 18 OR active = TRUE;"
     ));
 }
 
 #[test]
 fn test_select_with_in() {
     assert!(parse(
-        "SELECT name FROM users WHERE age IN (18, 20, 22);"
+        "FROM users SELECT name WHERE age IN (18, 20, 22);"
     ));
 }
 
