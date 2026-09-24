@@ -1,8 +1,5 @@
 grammar miniSQL;
 
-options { caseInsensitive = true; }
-
-
 
 // () obrigatório
 // ()* 0 ou + vezes
@@ -28,7 +25,7 @@ expressaoIn : value IN '(' value(',' value)*')';
 // Suporta condições encadeadas por AND / OR (ex: a = 1 AND b > 2)
 // mas eles nâo podem ficar na mesma linha, SQL tem preferência pelo AND
 condition : NOT condition
-          |condition AND condition
+          |condition AND condition //// resolver com parenteses?????
           | condition OR condition
           | '(' condition ')'
           | expr
@@ -67,7 +64,7 @@ BOOLEAN : 'TRUE' | 'FALSE' | 'true' | 'false'  ;
 ID : [a-z] [a-z0-9_]* ;
 INT : '-'? DIGIT+ ;
 FLOAT : '-'? DIGIT+ '.' DIGIT+ ;
-STRING : '\'' ~['\r\n]* '\'' ;
+STRING  : '\'' ~[\r\n';]* '\'' ;
 
 
 //operators comparação
@@ -89,5 +86,7 @@ fragment DIGIT : [0-9] ;
 // ~ == negação
 COMMENT : '--' ~[\r\n]* -> skip ;
 
+//porque
+ERROR_CHARACTER : . ;
 
 // Se começa com maiúscula, é token do Lexer. Se começa com minúscula, é regra do Parser.
