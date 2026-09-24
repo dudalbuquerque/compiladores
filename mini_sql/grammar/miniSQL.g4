@@ -6,6 +6,8 @@ grammar miniSQL;
 // ()? 0 ou 1 vez
 // ()+ 1 ou + vezes
 
+// ~ == negação
+
 
 // REGRAS DE PARSER
 
@@ -16,20 +18,26 @@ query : FROM ID SELECT selectList  (WHERE condition)? END;
 
 // Permite selecionar múltiplos campos (ex: a, b, c) ou '*'
 selectList : ID (',' ID)*
-           | '*' ;
+           | STAR ;
 
 // permite IN no WHERE
-expressaoIn : value IN '(' value(',' value)*')';
+expressaoIn : value IN LPAREN value (COMMA value)* RPAREN ;
 
 
 // Suporta condições encadeadas por AND / OR (ex: a = 1 AND b > 2)
 // mas eles nâo podem ficar na mesma linha, SQL tem preferência pelo AND
-condition : NOT condition
-          |condition AND condition //// resolver com parenteses?????
-          | condition OR condition
-          | '(' condition ')'
-          | expr
-          | expressaoIn ;
+//Para converter, o código precisa saber qual alternativa da regra condition foi usada em cada nó (NOT, AND, OR, parênteses, comparação ou IN)
+//Sem rótulos: o nó raiz é um ConditionContext genérico, e você descobre que é um AND procurando se existe o token AND dentro dele.
+//Com rótulos: o nó raiz já vem como AndContext, e o código faz match direto.
+
+condition : NOT inner=condition                  # not
+          | left=condition AND right=condition   # and
+          | left=condition OR right=condition    # or
+          | LPAREN inner=condition RPAREN        # parens
+          | expr                                 # exprCond
+          | expressaoIn                          # inCond
+          ;
+
 
 expr : left=value op=(EQUAL | NOT_EQUAL | LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) right=value;
 
@@ -75,18 +83,23 @@ LESS_EQUAL : '<=' ;
 GREATER : '>' ;
 GREATER_EQUAL : '>=' ;
 
-END: ';';
-// ws
+
+// pontuação
+COMMA  : ',' ;
+STAR   : '*' ;
+LPAREN : '(' ;
+RPAREN : ')' ;
+END    : ';' ;
+
 NEWLINE : [ \t\r\n]+ -> skip ;
+COMMENT : '--' ~[\r\n]* -> skip ;
 
 // fragment
 // Um fragment não gera um token sozinho. Ele serve como um pedaço reutilizável para construir outros tokens.
 fragment DIGIT : [0-9] ;
 
-// ~ == negação
-COMMENT : '--' ~[\r\n]* -> skip ;
 
-//porque
+//não casa com id e da erro no parser, para de dar erro no lexer
 ERROR_CHARACTER : . ;
 
 // Se começa com maiúscula, é token do Lexer. Se começa com minúscula, é regra do Parser.
