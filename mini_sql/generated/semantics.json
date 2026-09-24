@@ -2,15 +2,7 @@
   "version": 2,
   "policy": "assume-true",
   "note": "unknown coordinates currently default to assume-true; a future minor release changes the default to error",
-  "options": [
-    {
-      "name": "caseInsensitive",
-      "value": "true",
-      "line": 3,
-      "column": 10,
-      "disposition": "metadata"
-    }
-  ],
+  "options": [],
   "grammars": [
     {
       "kind": "lexer",
