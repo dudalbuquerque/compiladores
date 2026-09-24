@@ -1,3 +1,4 @@
+use antlr4_runtime::parser::Parser; // <--- Adicione esta linha (ou `use antlr4_runtime::Parser;`)
 use antlr4_runtime::{CommonTokenStream, InputStream};
 
 use mini_sql::mini_sql_lexer::MiniSqlLexer;
@@ -9,12 +10,12 @@ fn parse_error(input: &str) -> bool {
     let tokens = CommonTokenStream::new(lexer);
     let mut parser = MiniSqlParser::new(tokens);
 
-    parser.program().is_err()
+    //parser.program().is_err()
     // Executa o parser
-    //let result = parser.program();
+    let result = parser.program();
 
     // Se houver algum erro de sintaxe registrado pelo parser ou se a função retornar Err
-    //result.is_err() || parser.get_number_of_syntax_errors() > 0
+    result.is_err() || parser.number_of_syntax_errors() > 0
 }
 
 
@@ -111,12 +112,12 @@ fn test_unclosed_string_literal_minus() {
 
 #[test]
 fn test_invalid_operator() {
-    // Operadores como === ou && não foram definidos na gramática
+    // Operadores como === o nã foram definidos na gramática
     assert!(parse_error("FROM users SELECT name WHERE age === 18;"));
 }
 #[test]
 fn test_invalid_operator_minus() {
-    // Operadores como === ou && não foram definidos na gramática
+    // Operadores como ===  foram definidos na gramática
     assert!(parse_error("from users select name where age === 18;"));
 }
 
@@ -172,6 +173,8 @@ fn test_identifier_start_with_number_minus() {
     assert!(parse_error("from 123users select name;"));
 }
 
+
+//comentar com professor
 #[test]
 fn test_invalid_identifier_start() {
     assert!(parse_error("FROM _users SELECT name;"));
