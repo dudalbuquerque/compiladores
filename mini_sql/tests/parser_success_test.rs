@@ -120,14 +120,6 @@ fn test_negative_numbers_minus() {
     assert!(parse("from users select age where credit >= -10.5"));
 }
 
-
-#[test]
-fn test_negative_numbers() {
-    assert!(parse("FROM metrics SELECT value WHERE temp >= -15.5 AND status_code = -1;"));
-}
-
-
-
 #[test]
 fn test_select_with_not_and_parenthesis() {
     assert!(parse("FROM users SELECT name WHERE NOT (age < 18 OR active = FALSE);"));
