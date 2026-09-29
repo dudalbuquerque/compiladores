@@ -14,10 +14,19 @@ fn test_ast_generation() {
     let tokens = CommonTokenStream::new(lexer);
     let mut parser = MiniSqlParser::new(tokens);
 
-    let program_ctx = parser.program().expect("Falha no parse");
-    let ast = AstBuilder::build_program(&program_ctx).expect("Falha ao construir a AST");
+    // 1. Executa o parser para obter o NodeId do nó raiz
+    let root_node_id = parser.program().expect("Falha no parse");
 
+    // 2. Obtém a referência ao ProgramContext usando a rec do parser
+    let node = parser.rec.get_node(root_node_id);
+    let program_ctx: &ProgramContext = node
+        .downcast_ref()
+        .expect("O nó obtido não é um ProgramContext válido");
 
+    // 3. Constrói e exibe a AST
+    let ast = AstBuilder::build_program(program_ctx).expect("Falha ao construir a AST");
+
+    
     // O {:#?} imprime a struct/enum formatada com indentacao
     println!("\n=== ÁRVORE AST GERADA ===");
     println!("{:#?}", ast);
