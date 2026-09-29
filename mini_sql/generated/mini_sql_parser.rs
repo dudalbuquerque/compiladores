@@ -88,6 +88,32 @@ fn parser_semantics() -> &'static antlr4_runtime::ParserSemantics {
 
 
 
+#[allow(dead_code)]
+pub trait miniSQLVisitable<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a>;
+}
+
+impl<'a> miniSQLVisitable<'a> for antlr4_runtime::Node<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self }
+}
+
+impl<'a> miniSQLVisitable<'a> for RuleNodeView<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+#[allow(dead_code)]
+pub trait miniSQLValidatedVisitable<'a> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a>;
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ValidatedRuleNode<'a> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ValidatedRuleNode<'a> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
 /// Marker carried by generated contexts whose required-child
 /// invariants were checked after a syntax-clean parse, and grammar brand of
 /// this module's validated tree and rule-node types.
@@ -124,6 +150,30 @@ pub use antlr4_runtime::FromValidatedRuleNode;
 /// the branded tree types, the validation errors of every generated parser
 /// are deliberately one shared type.
 pub type miniSQLValidationError = antlr4_runtime::ValidationError;
+
+impl<'a> miniSQLVisitable<'a> for TerminalNode<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &TerminalNode<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for ErrorNode<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ErrorNode<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for TerminalNode<'a> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &TerminalNode<'a> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.node() }
+}
 
 #[allow(dead_code)]
 fn __context_kind(context: RuleNodeView<'_>) -> usize {
@@ -239,6 +289,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for ProgramContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ProgramContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ProgramContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ProgramContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct QueryContext {
         rule_index: 1,
@@ -268,6 +334,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for QueryContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &QueryContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for QueryContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &QueryContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct SelectListContext {
         rule_index: 2,
@@ -291,6 +373,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
         token comma_tokens: many(19),
         token star_token: optional(20),
     }
+}
+
+impl<'a> miniSQLVisitable<'a> for SelectListContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &SelectListContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for SelectListContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &SelectListContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
 }
 
 antlr4_runtime::__antlr4_rust_context! {
@@ -318,6 +416,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
         token lparen_token: required(21, "LPAREN"),
         token rparen_token: required(22, "RPAREN"),
     }
+}
+
+impl<'a> miniSQLVisitable<'a> for ExpressaoInContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ExpressaoInContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ExpressaoInContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ExpressaoInContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
 }
 
 antlr4_runtime::__antlr4_rust_context! {
@@ -350,6 +464,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for ConditionContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ConditionContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ConditionContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ConditionContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct NotLabelContext {
         rule_index: 4,
@@ -373,6 +503,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
         token not_token: required(7, "NOT"),
         label_rule inner: required(nth(0), ConditionContext[4], "inner"),
     }
+}
+
+impl<'a> miniSQLVisitable<'a> for NotLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &NotLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for NotLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &NotLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
 }
 
 antlr4_runtime::__antlr4_rust_context! {
@@ -401,6 +547,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for AndLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &AndLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for AndLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &AndLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct OrLabelContext {
         rule_index: 4,
@@ -425,6 +587,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
         label_rule left: required(nth(0), ConditionContext[4], "left"),
         label_rule right: required(nth(1), ConditionContext[4], "right"),
     }
+}
+
+impl<'a> miniSQLVisitable<'a> for OrLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &OrLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for OrLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &OrLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
 }
 
 antlr4_runtime::__antlr4_rust_context! {
@@ -453,6 +631,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for ParensLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ParensLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ParensLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ParensLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ExprCondLabelContext {
         rule_index: 4,
@@ -476,6 +670,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for ExprCondLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ExprCondLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ExprCondLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ExprCondLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct InCondLabelContext {
         rule_index: 4,
@@ -497,6 +707,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     InCondLabelContext {
         rule expressao_in: required(ExpressaoInContext[3], "expressaoIn"),
     }
+}
+
+impl<'a> miniSQLVisitable<'a> for InCondLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &InCondLabelContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for InCondLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &InCondLabelContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
 }
 
 antlr4_runtime::__antlr4_rust_context! {
@@ -531,6 +757,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
     }
 }
 
+impl<'a> miniSQLVisitable<'a> for ExprContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ExprContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ExprContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ExprContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ValueContext {
         rule_index: 6,
@@ -556,6 +798,22 @@ antlr4_runtime::__antlr4_rust_context_accessors! {
         token float_token: optional(11),
         token string_token: optional(12),
     }
+}
+
+impl<'a> miniSQLVisitable<'a> for ValueContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ValueContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ValueContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ValueContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
 }
 
 /// Checks generated required-child invariants without changing the
@@ -916,6 +1174,296 @@ impl miniSQLValidatedTreeWalker {
 }
 
 pub type ValidatedParseTreeWalker = miniSQLValidatedTreeWalker;
+
+#[allow(dead_code, unused_variables)]
+pub trait miniSQLVisitor: Sized {
+    type Result;
+
+    fn default_result(&mut self) -> Self::Result;
+
+    fn visit<'tree, T>(&mut self, tree: T) -> Self::Result
+    where
+        T: miniSQLVisitable<'tree>,
+    {
+        let tree = miniSQLVisitable::into_parse_tree_node(tree);
+        let mut bridge = __VisitorBridge(self);
+        antlr4_runtime::ParseTreeVisitor::visit(&mut bridge, tree)
+    }
+
+    fn visit_children<'tree, T>(&mut self, context: T) -> Self::Result
+    where
+        T: miniSQLVisitable<'tree>,
+    {
+        let tree = miniSQLVisitable::into_parse_tree_node(context);
+        let context = tree.as_rule().expect("visit_children requires a rule context");
+        let mut bridge = __VisitorBridge(self);
+        antlr4_runtime::ParseTreeVisitor::visit_children(&mut bridge, context)
+    }
+
+    fn aggregate_result(
+        &mut self,
+        _aggregate: Self::Result,
+        next_result: Self::Result,
+    ) -> Self::Result {
+        next_result
+    }
+
+    fn should_visit_next_child(
+        &mut self,
+        _context: RuleNodeView<'_>,
+        _current_result: &Self::Result,
+    ) -> bool {
+        true
+    }
+
+    fn visit_terminal(&mut self, _node: &TerminalNode) -> Self::Result {
+        self.default_result()
+    }
+
+    fn visit_error_node(&mut self, _node: &ErrorNode) -> Self::Result {
+        self.default_result()
+    }
+
+    fn visit_program(&mut self, ctx: &ProgramContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_query(&mut self, ctx: &QueryContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_select_list(&mut self, ctx: &SelectListContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_expressao_in(&mut self, ctx: &ExpressaoInContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_condition(&mut self, ctx: &ConditionContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_not_label(&mut self, ctx: &NotLabelContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_and_label(&mut self, ctx: &AndLabelContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_or_label(&mut self, ctx: &OrLabelContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_parens_label(&mut self, ctx: &ParensLabelContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_expr_cond_label(&mut self, ctx: &ExprCondLabelContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_in_cond_label(&mut self, ctx: &InCondLabelContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_expr(&mut self, ctx: &ExprContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_value(&mut self, ctx: &ValueContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+}
+
+#[allow(dead_code)]
+struct __VisitorBridge<'a, T: miniSQLVisitor>(&'a mut T);
+
+impl<T: miniSQLVisitor> antlr4_runtime::ParseTreeVisitor for __VisitorBridge<'_, T> {
+    type Result = T::Result;
+
+    fn visit_rule(&mut self, context: RuleNodeView<'_>) -> Self::Result {
+        match __context_kind(context) {
+            0 => miniSQLVisitor::visit_program(self.0, &ProgramContext::__from_listener_node(context, None)),
+            1 => miniSQLVisitor::visit_query(self.0, &QueryContext::__from_listener_node(context, None)),
+            2 => miniSQLVisitor::visit_select_list(self.0, &SelectListContext::__from_listener_node(context, None)),
+            3 => miniSQLVisitor::visit_expressao_in(self.0, &ExpressaoInContext::__from_listener_node(context, None)),
+            4 => miniSQLVisitor::visit_condition(self.0, &ConditionContext::__from_listener_node(context, None)),
+            5 => miniSQLVisitor::visit_not_label(self.0, &NotLabelContext::__from_listener_node(context, None)),
+            6 => miniSQLVisitor::visit_and_label(self.0, &AndLabelContext::__from_listener_node(context, None)),
+            7 => miniSQLVisitor::visit_or_label(self.0, &OrLabelContext::__from_listener_node(context, None)),
+            8 => miniSQLVisitor::visit_parens_label(self.0, &ParensLabelContext::__from_listener_node(context, None)),
+            9 => miniSQLVisitor::visit_expr_cond_label(self.0, &ExprCondLabelContext::__from_listener_node(context, None)),
+            10 => miniSQLVisitor::visit_in_cond_label(self.0, &InCondLabelContext::__from_listener_node(context, None)),
+            11 => miniSQLVisitor::visit_expr(self.0, &ExprContext::__from_listener_node(context, None)),
+            12 => miniSQLVisitor::visit_value(self.0, &ValueContext::__from_listener_node(context, None)),
+            _ => miniSQLVisitor::default_result(self.0),
+        }
+    }
+
+    fn visit_terminal(&mut self, node: RuntimeTerminalNode<'_>) -> Self::Result {
+        miniSQLVisitor::visit_terminal(self.0, &TerminalNode::new(node))
+    }
+
+    fn visit_error_node(&mut self, node: RuntimeErrorNode<'_>) -> Self::Result {
+        miniSQLVisitor::visit_error_node(self.0, &ErrorNode::new(node))
+    }
+
+    fn default_result(&mut self) -> Self::Result {
+        miniSQLVisitor::default_result(self.0)
+    }
+
+    fn aggregate_result(
+        &mut self,
+        aggregate: Self::Result,
+        next_result: Self::Result,
+    ) -> Self::Result {
+        miniSQLVisitor::aggregate_result(self.0, aggregate, next_result)
+    }
+
+    fn should_visit_next_child(
+        &mut self,
+        context: RuleNodeView<'_>,
+        current_result: &Self::Result,
+    ) -> bool {
+        miniSQLVisitor::should_visit_next_child(self.0, context, current_result)
+    }
+}
+
+#[allow(dead_code, unused_variables)]
+pub trait miniSQLValidatedVisitor: Sized {
+    type Result;
+
+    fn default_result(&mut self) -> Self::Result;
+
+    fn visit<'tree, T>(&mut self, tree: T) -> Self::Result
+    where
+        T: miniSQLValidatedVisitable<'tree>,
+    {
+        let tree = miniSQLValidatedVisitable::into_validated_parse_tree_node(tree);
+        let mut bridge = __ValidatedVisitorBridge(self);
+        antlr4_runtime::ParseTreeVisitor::visit(&mut bridge, tree)
+    }
+
+    fn visit_children<'tree, T>(&mut self, context: T) -> Self::Result
+    where
+        T: miniSQLValidatedVisitable<'tree>,
+    {
+        let tree = miniSQLValidatedVisitable::into_validated_parse_tree_node(context);
+        let context = tree.as_rule().expect("visit_children requires a rule context");
+        let mut bridge = __ValidatedVisitorBridge(self);
+        antlr4_runtime::ParseTreeVisitor::visit_children(&mut bridge, context)
+    }
+
+    fn aggregate_result(
+        &mut self,
+        _aggregate: Self::Result,
+        next_result: Self::Result,
+    ) -> Self::Result {
+        next_result
+    }
+
+    fn should_visit_next_child(
+        &mut self,
+        _context: ValidatedRuleNode<'_>,
+        _current_result: &Self::Result,
+    ) -> bool {
+        true
+    }
+
+    fn visit_terminal(&mut self, _node: &TerminalNode) -> Self::Result {
+        self.default_result()
+    }
+
+    fn visit_program(&mut self, ctx: &ProgramContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_query(&mut self, ctx: &QueryContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_select_list(&mut self, ctx: &SelectListContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_expressao_in(&mut self, ctx: &ExpressaoInContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_condition(&mut self, ctx: &ConditionContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_not_label(&mut self, ctx: &NotLabelContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_and_label(&mut self, ctx: &AndLabelContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_or_label(&mut self, ctx: &OrLabelContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_parens_label(&mut self, ctx: &ParensLabelContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_expr_cond_label(&mut self, ctx: &ExprCondLabelContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_in_cond_label(&mut self, ctx: &InCondLabelContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_expr(&mut self, ctx: &ExprContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_value(&mut self, ctx: &ValueContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+}
+
+#[allow(dead_code)]
+struct __ValidatedVisitorBridge<'a, T: miniSQLValidatedVisitor>(&'a mut T);
+
+impl<T: miniSQLValidatedVisitor> antlr4_runtime::ParseTreeVisitor
+    for __ValidatedVisitorBridge<'_, T>
+{
+    type Result = T::Result;
+
+    fn visit_rule(&mut self, context: RuleNodeView<'_>) -> Self::Result {
+        match __context_kind(context) {
+            0 => miniSQLValidatedVisitor::visit_program(self.0, &ProgramContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            1 => miniSQLValidatedVisitor::visit_query(self.0, &QueryContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            2 => miniSQLValidatedVisitor::visit_select_list(self.0, &SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            3 => miniSQLValidatedVisitor::visit_expressao_in(self.0, &ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            4 => miniSQLValidatedVisitor::visit_condition(self.0, &ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            5 => miniSQLValidatedVisitor::visit_not_label(self.0, &NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            6 => miniSQLValidatedVisitor::visit_and_label(self.0, &AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            7 => miniSQLValidatedVisitor::visit_or_label(self.0, &OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            8 => miniSQLValidatedVisitor::visit_parens_label(self.0, &ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            9 => miniSQLValidatedVisitor::visit_expr_cond_label(self.0, &ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            10 => miniSQLValidatedVisitor::visit_in_cond_label(self.0, &InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            11 => miniSQLValidatedVisitor::visit_expr(self.0, &ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            12 => miniSQLValidatedVisitor::visit_value(self.0, &ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            _ => miniSQLValidatedVisitor::default_result(self.0),
+        }
+    }
+
+    fn visit_terminal(&mut self, node: RuntimeTerminalNode<'_>) -> Self::Result {
+        miniSQLValidatedVisitor::visit_terminal(self.0, &TerminalNode::new(node))
+    }
+
+    fn visit_error_node(&mut self, _node: RuntimeErrorNode<'_>) -> Self::Result {
+        unreachable!("validated parse tree contains an error node")
+    }
+
+    fn default_result(&mut self) -> Self::Result {
+        miniSQLValidatedVisitor::default_result(self.0)
+    }
+
+    fn aggregate_result(
+        &mut self,
+        aggregate: Self::Result,
+        next_result: Self::Result,
+    ) -> Self::Result {
+        miniSQLValidatedVisitor::aggregate_result(self.0, aggregate, next_result)
+    }
+
+    fn should_visit_next_child(
+        &mut self,
+        context: RuleNodeView<'_>,
+        current_result: &Self::Result,
+    ) -> bool {
+        miniSQLValidatedVisitor::should_visit_next_child(
+            self.0,
+            ValidatedRuleNode::__new(context),
+            current_result,
+        )
+    }
+}
 
 
 
