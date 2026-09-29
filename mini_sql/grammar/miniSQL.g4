@@ -42,8 +42,6 @@ condition : NOT inner=condition                  # not
 expr : left=value op=(EQUAL | NOT_EQUAL | LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) right=value;
 
 
-
-//ACHO QUE DESSE JEITO ACEITARIA 1=1 E RETORNARIA TODA, QUEREMOS ? TYPE CHECKER
 value: ID
      | INT
      | FLOAT
