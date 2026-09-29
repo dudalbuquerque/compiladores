@@ -5,3 +5,6 @@ pub mod mini_sql_lexer {
 pub mod mini_sql_parser {
     include!("../generated/mini_sql_parser.rs");
 }
+
+pub mod ast;
+pub mod ast_builder;
