@@ -1,7 +1,3 @@
-use antlr4_runtime::{CommonTokenStream, InputStream};
-use mini_sql::mini_sql_lexer::MiniSqlLexer;
-use mini_sql::mini_sql_parser::MiniSqlParser;
-
 use mini_sql::ast::*;
 use mini_sql::ast_builder::AstBuilder;
 
@@ -9,22 +5,7 @@ use mini_sql::ast_builder::AstBuilder;
 fn test_ast_generation() {
     let input = "FROM users SELECT name, credit WHERE type IN ('admin', 'editor') AND active = TRUE AND credit >= 150.50;";
 
-    let stream = InputStream::new(input);
-    let lexer = MiniSqlLexer::new(stream);
-    let tokens = CommonTokenStream::new(lexer);
-    let mut parser = MiniSqlParser::new(tokens);
-
-    // 1. Executa o parser para obter o NodeId do nó raiz
-    let root_node_id = parser.program().expect("Falha no parse");
-
-    // 2. Obtém a referência ao ProgramContext usando a rec do parser
-    let node = parser.rec.get_node(root_node_id);
-    let program_ctx: &ProgramContext = node
-        .downcast_ref()
-        .expect("O nó obtido não é um ProgramContext válido");
-
-    // 3. Constrói e exibe a AST
-    let ast = AstBuilder::build_program(program_ctx).expect("Falha ao construir a AST");
+    let ast = AstBuilder::parse_sql(input).expect("Falha ao construir a AST");
 
     
     // O {:#?} imprime a struct/enum formatada com indentacao
