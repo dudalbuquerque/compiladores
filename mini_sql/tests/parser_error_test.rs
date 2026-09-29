@@ -1,4 +1,4 @@
-use antlr4_runtime::parser::Parser; // <--- Adicione esta linha (ou `use antlr4_runtime::Parser;`)
+use antlr4_runtime::parser::Parser;
 use antlr4_runtime::{CommonTokenStream, InputStream};
 
 use mini_sql::mini_sql_lexer::MiniSqlLexer;
