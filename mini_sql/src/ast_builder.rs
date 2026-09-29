@@ -1,165 +1,176 @@
 use crate::ast::*;
-use crate::mini_sql_parser::*;
+use crate::mini_sql_lexer::MiniSqlLexer;
+use crate::mini_sql_parser::{
+    self, miniSQLVisitor, AndLabelContext, ConditionContext, ExprContext, ExprCondLabelContext,
+    ExpressaoInContext, InCondLabelContext, MiniSqlParser, NotLabelContext, OrLabelContext,
+    ParensLabelContext, ProgramContext, QueryContext, SelectListContext, ValueContext,
+};
+
+use antlr4_runtime::FromRuleNode;
+
+type Res<T> = Result<T, String>;
+
+/// Converte qualquer erro de "filho ausente" numa mensagem simples.
+fn miss<E>(_e: E) -> String {
+    "nó filho ausente na árvore (possível erro de sintaxe)".to_string()
+}
 
 pub struct AstBuilder;
 
 impl AstBuilder {
-    pub fn build_program(ctx: &ProgramContext) -> Result<Program, String> {
-        let mut queries = Vec::new();
-        for q_ctx in ctx.query_children() {
-            queries.push(Self::build_query(&q_ctx)?);
-        }
+    /// Ponto de entrada: recebe o texto SQL e devolve a AST.
+    pub fn parse_sql(input: &str) -> Res<Program> {
+        let parsed = mini_sql_parser::parse(input, MiniSqlLexer::new, MiniSqlParser::program)
+            .map_err(|e| format!("{e:?}"))?;
+
+        let rule = parsed
+            .tree()
+            .as_rule()
+            .ok_or("a raiz da árvore não é uma regra")?;
+
+        let root = ProgramContext::from_rule_node(rule)
+            .ok_or("a raiz da árvore não é um `program`")?;
+
+        Self::build_program(&root)
+    }
+
+    pub fn build_program(ctx: &ProgramContext<'_>) -> Res<Program> {
+        let queries = ctx
+            .query_children()
+            .map(|q| Self::build_query(&q))
+            .collect::<Res<Vec<_>>>()?;
         Ok(Program { queries })
     }
 
-    pub fn build_query(ctx: &QueryContext) -> Result<Query, String> {
-        let select_ctx = ctx
-            .select_list()
-            .map_err(|e| format!("Clausula SELECT invalida ou ausente: {:?}", e))?;
+    fn build_query(ctx: &QueryContext<'_>) -> Res<Query> {
+        // query : FROM ID SELECT selectList (WHERE condition)? END
+        let table = ctx.id_token().map_err(miss)?.to_string();
+        let select = Self::build_select_list(&ctx.select_list().map_err(miss)?);
 
-        let select = Self::build_select_list(&select_ctx)?;
-
-        // Extrai o nome da tabela a partir do texto do contexto (após o FROM)
-        let full_text = ctx.text();
-        let table = if let Some(from_idx) = full_text.to_uppercase().find("FROM") {
-            let after_from = &full_text[from_idx + 4..];
-            after_from
-                .split_whitespace()
-                .next()
-                .unwrap_or("")
-                .trim_matches(|c| c == ';' || c == ' ')
-                .to_string()
-        } else {
-            full_text
+        let condition = match ctx.condition() {
+            Some(c) => Some(Self::build_condition(&c)?),
+            None => None,
         };
 
-        let condition = if let Some(cond_ctx) = ctx.condition() {
-            Some(Self::build_condition(&cond_ctx)?)
+        Ok(Query { table, select, condition })
+    }
+
+    fn build_select_list(ctx: &SelectListContext<'_>) -> SelectList {
+        // Os tokens são concatenados sem espaço: "*" ou "a,b,c".
+        let text = ctx.text().to_string();
+        if text == "*" {
+            SelectList::All
         } else {
-            None
-        };
-
-        Ok(Query {
-            table,
-            select,
-            condition,
-        })
-    }
-
-    fn build_select_list(ctx: &SelectListContext) -> Result<SelectList, String> {
-        let text = ctx.text();
-        if text.trim() == "*" {
-            Ok(SelectList::All)
-        } else {
-            let cols = text
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
-            Ok(SelectList::Columns(cols))
+            SelectList::Columns(
+                text.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect(),
+            )
         }
     }
 
-    fn build_condition(ctx: &ConditionContext) -> Result<Condition, String> {
-        let children: Vec<_> = ctx.condition_children().collect();
-
-        // Caso 1: NOT (Possui 1 sub-condição)
-        if children.len() == 1 {
-            let text = ctx.text().to_uppercase();
-            if text.starts_with("NOT") {
-                return Ok(Condition::Not(Box::new(Self::build_condition(&children[0])?)));
-            }
-        }
-
-        // Caso 2: AND / OR (Possui 2 sub-condições)
-        if children.len() >= 2 {
-            let left = Self::build_condition(&children[0])?;
-            let right = Self::build_condition(&children[1])?;
-
-            let text = ctx.text().to_uppercase();
-            if text.contains(" AND ") {
-                return Ok(Condition::And(Box::new(left), Box::new(right)));
-            } else if text.contains(" OR ") {
-                return Ok(Condition::Or(Box::new(left), Box::new(right)));
-            }
-        }
-
-        // Caso 3: Expressão folha (Comparação simples)
-        if let Some(expr_ctx) = ctx.expr() {
-            return Ok(Condition::Expr(Self::build_expr(&expr_ctx)?));
-        }
-
-        // Caso 4: Expressão IN
-        if let Some(in_ctx) = ctx.expressao_in() {
-            return Ok(Condition::ExprIn(Self::build_expr_in(&in_ctx)?));
-        }
-
-        Err("Tipo de condicao nao reconhecido".to_string())
+    fn build_condition(ctx: &ConditionContext<'_>) -> Res<Condition> {
+        ConditionBuilder.visit(ctx)
     }
 
-    fn build_expr(ctx: &ExprContext) -> Result<Expr, String> {
-        // value_children() em vez de value_all()
-        let values: Vec<_> = ctx.value_children().collect();
-        if values.len() < 2 {
-            return Err("Expressao de comparacao incompleta".to_string());
-        }
+    fn build_expr(ctx: &ExprContext<'_>) -> Res<Expr> {
+        let left = Self::build_value(&ctx.left().map_err(miss)?)?;
+        let right = Self::build_value(&ctx.right().map_err(miss)?)?;
 
-        let left = Self::build_value(&values[0])?;
-        let right = Self::build_value(&values[1])?;
-
-        let text = ctx.text();
-        let op = if text.contains(">=") {
-            Operator::GreaterEqual
-        } else if text.contains("<=") {
-            Operator::LessEqual
-        } else if text.contains("!=") || text.contains("<>") {
-            Operator::NotEqual
-        } else if text.contains('>') {
-            Operator::Greater
-        } else if text.contains('<') {
-            Operator::Less
-        } else if text.contains('=') {
+        let op = if ctx.equal_token().is_some() {
             Operator::Equal
+        } else if ctx.not_equal_token().is_some() {
+            Operator::NotEqual
+        } else if ctx.less_equal_token().is_some() {
+            Operator::LessEqual
+        } else if ctx.less_token().is_some() {
+            Operator::Less
+        } else if ctx.greater_equal_token().is_some() {
+            Operator::GreaterEqual
+        } else if ctx.greater_token().is_some() {
+            Operator::Greater
         } else {
-            return Err(format!("Operador desconhecido: {}", text));
+            return Err("operador de comparação não reconhecido".to_string());
         };
 
         Ok(Expr { left, op, right })
     }
 
-    fn build_expr_in(ctx: &ExpressaoInContext) -> Result<ExprIn, String> {
-        // value_children() em vez de value_all()
-        let values_ctx: Vec<_> = ctx.value_children().collect();
-        if values_ctx.is_empty() {
-            return Err("Expressao IN vazia".to_string());
+    fn build_in(ctx: &ExpressaoInContext<'_>) -> Res<ExprIn> {
+        // expressaoIn : value IN ( value (, value)* )
+        // O primeiro `value` é o testado; os demais são a lista.
+        let mut vals = ctx
+            .value_children()
+            .map(|v| Self::build_value(&v))
+            .collect::<Res<Vec<_>>>()?;
+
+        if vals.is_empty() {
+            return Err("IN sem valores".to_string());
         }
-
-        let value = Self::build_value(&values_ctx[0])?;
-        let mut values = Vec::new();
-
-        for v_ctx in &values_ctx[1..] {
-            values.push(Self::build_value(v_ctx)?);
-        }
-
-        Ok(ExprIn { value, values })
+        let value = vals.remove(0);
+        Ok(ExprIn { value, values: vals })
     }
 
-    fn build_value(ctx: &ValueContext) -> Result<Value, String> {
-        let text = ctx.text();
+    fn build_value(ctx: &ValueContext<'_>) -> Res<Value> {
+        let text = ctx.text().to_string();
 
-        if text.starts_with('\'') || text.starts_with('"') {
-            let inner = &text[1..text.len() - 1];
-            Ok(Value::String(inner.to_string()))
-        } else if text.eq_ignore_ascii_case("true") {
-            Ok(Value::Boolean(true))
-        } else if text.eq_ignore_ascii_case("false") {
-            Ok(Value::Boolean(false))
-        } else if let Ok(v) = text.parse::<i64>() {
-            Ok(Value::Int(v))
-        } else if let Ok(v) = text.parse::<f64>() {
-            Ok(Value::Float(v))
-        } else {
+        if ctx.id_token().is_some() {
             Ok(Value::Id(text))
+        } else if ctx.int_token().is_some() {
+            text.parse::<i64>().map(Value::Int).map_err(|e| e.to_string())
+        } else if ctx.float_token().is_some() {
+            text.parse::<f64>().map(Value::Float).map_err(|e| e.to_string())
+        } else if ctx.string_token().is_some() {
+            // o lexer não permite aspas dentro da string
+            Ok(Value::String(text.trim_matches('\'').to_string()))
+        } else if ctx.boolean_token().is_some() {
+            Ok(Value::Boolean(text.eq_ignore_ascii_case("true")))
+        } else {
+            Err(format!("valor não reconhecido: {text}"))
         }
+    }
+}
+
+/// Visitor só para `condition`: cada alternativa rotulada vira uma variante de `Condition`.
+struct ConditionBuilder;
+
+impl miniSQLVisitor for ConditionBuilder {
+    type Result = Res<Condition>;
+
+    fn default_result(&mut self) -> Self::Result {
+        Err("condição não reconhecida".to_string())
+    }
+
+    fn visit_not_label(&mut self, ctx: &NotLabelContext) -> Self::Result {
+        let inner = self.visit(ctx.inner().map_err(miss)?)?;
+        Ok(Condition::Not(Box::new(inner)))
+    }
+
+    fn visit_and_label(&mut self, ctx: &AndLabelContext) -> Self::Result {
+        let left = self.visit(ctx.left().map_err(miss)?)?;
+        let right = self.visit(ctx.right().map_err(miss)?)?;
+        Ok(Condition::And(Box::new(left), Box::new(right)))
+    }
+
+    fn visit_or_label(&mut self, ctx: &OrLabelContext) -> Self::Result {
+        let left = self.visit(ctx.left().map_err(miss)?)?;
+        let right = self.visit(ctx.right().map_err(miss)?)?;
+        Ok(Condition::Or(Box::new(left), Box::new(right)))
+    }
+
+    fn visit_parens_label(&mut self, ctx: &ParensLabelContext) -> Self::Result {
+        let inner = self.visit(ctx.inner().map_err(miss)?)?;
+        Ok(Condition::Parens(Box::new(inner)))
+    }
+
+    fn visit_expr_cond_label(&mut self, ctx: &ExprCondLabelContext) -> Self::Result {
+        let expr = AstBuilder::build_expr(&ctx.expr().map_err(miss)?)?;
+        Ok(Condition::Expr(expr))
+    }
+
+    fn visit_in_cond_label(&mut self, ctx: &InCondLabelContext) -> Self::Result {
+        let e = AstBuilder::build_in(&ctx.expressao_in().map_err(miss)?)?;
+        Ok(Condition::ExprIn(e))
     }
 }
