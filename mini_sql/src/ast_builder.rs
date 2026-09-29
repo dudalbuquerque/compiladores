@@ -8,16 +8,15 @@ use crate::mini_sql_parser::{
 
 use antlr4_runtime::FromRuleNode;
 
-type Res<T> = Result<T, String>;
+type Res<T> = Result<T, String>; // facilita no tratamento de erros
 
-/// Converte qualquer erro de "filho ausente" numa mensagem simples.
 fn miss<E>(_e: E) -> String {
     "nó filho ausente na árvore (possível erro de sintaxe)".to_string()
 }
 
-pub struct AstBuilder;
+pub struct AstBuilder;//namespace - não guarda estado
 
-impl AstBuilder {
+impl AstBuilder { //metodos associados
     /// Ponto de entrada: recebe o texto SQL e devolve a AST.
     pub fn parse_sql(input: &str) -> Res<Program> {
         let parsed = mini_sql_parser::parse(input, MiniSqlLexer::new, MiniSqlParser::program)
@@ -132,7 +131,8 @@ impl AstBuilder {
     }
 }
 
-/// Visitor só para `condition`: cada alternativa rotulada vira uma variante de `Condition`.
+/// Visitor do parser
+// complexidade-> recursão , alternativas rotuladas
 struct ConditionBuilder;
 
 impl miniSQLVisitor for ConditionBuilder {
