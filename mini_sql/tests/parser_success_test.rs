@@ -187,3 +187,22 @@ fn test_comments_and_whitespaces_minus() {
     assert!(parse(input));
 }
 
+#[test]
+fn test_load_csv() {
+    assert!(parse("LOAD 'users.csv';"));
+}
+
+#[test]
+fn test_describe_table() {
+    assert!(parse("DESCRIBE users;"));
+}
+
+#[test]
+fn test_multiple_statement_types() {
+    let input = "
+        LOAD 'users.csv';
+        DESCRIBE users;
+        FROM users SELECT name;
+    ";
+    assert!(parse(input));
+}

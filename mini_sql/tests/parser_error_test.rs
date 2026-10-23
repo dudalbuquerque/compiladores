@@ -208,3 +208,14 @@ fn test_old_select_syntax() {
 fn test_old_select_syntax_minus() {
     assert!(parse_error("select name from users;"));
 }
+
+
+#[test]
+fn test_load_missing_string() {
+    assert!(parse_error("LOAD ;"));
+}
+
+#[test]
+fn test_describe_missing_table() {
+    assert!(parse_error("DESCRIBE ;"));
+}

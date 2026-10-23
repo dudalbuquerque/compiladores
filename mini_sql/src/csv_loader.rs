@@ -9,7 +9,10 @@ pub fn load_csv(path_csv: &str) -> Result<Table, Box<dyn Error>> {
     for line in message.lines() {
         println!("{}", line);
     }
-    Ok(Table::new())
+    Ok(Table {
+        columns: Vec::new(),
+        rows: Vec::new(),
+    })
 
 }
 

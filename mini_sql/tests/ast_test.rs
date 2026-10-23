@@ -14,8 +14,11 @@ fn test_ast_generation() {
     println!("=========================\n");
 
     
-    assert_eq!(ast.queries.len(), 1);
-    let query = &ast.queries[0];
+    assert_eq!(ast.statements.len(), 1);
+    let query = match &ast.statements[0] {
+        Statement::Query(query) => query,
+        _ => panic!("Esperava uma Statement::Query"),
+    };
 
     assert_eq!(query.table, "users");
 
@@ -75,4 +78,30 @@ fn test_ast_generation() {
     } else {
         panic!("Esperava que o no raiz das condicoes fosse Condition::And");
     }
+}
+
+#[test]
+fn test_load_statement() {
+    let ast = AstBuilder::parse_sql("LOAD 'users.csv';")
+        .expect("Falha ao construir AST do LOAD");
+
+    assert_eq!(
+        ast.statements,
+        vec![Statement::Load(Load {
+            file: "users.csv".to_string()
+        })]
+    );
+}
+
+#[test]
+fn test_describe_statement() {
+    let ast = AstBuilder::parse_sql("DESCRIBE users;")
+        .expect("Falha ao construir AST do DESCRIBE");
+
+    assert_eq!(
+        ast.statements,
+        vec![Statement::Describe(Describe {
+            table: "users".to_string()
+        })]
+    );
 }
