@@ -24,21 +24,46 @@ O escopo será definido antes da implementação da gramática, determinando qua
 ## Estrutura planejada
 
 ```text
-mini-sql/
-|── generated/
+mini_sql/
+├── generated/
 │   └── código gerado pelo ANTLR
 │
 ├── grammar/
-│   └── SQL.g4
+│   └── miniSQL.g4
 │
 ├── src/
-│   │── lib.rs
-│   └── main.rs
-│    
+│   ├── lib.rs
+│   ├── main.rs
+│   ├── ast.rs
+│   ├── ast_builder.rs
+│   ├── ast_printer.rs
+│   ├── csv_loader.rs
+│   ├── table.rs
+│   └── executor.rs
 │
 ├── tests/
-│   └── parser_tests.rs
+│   ├── ast_test.rs
+│   ├── csv_loader_test.rs
+│   ├── parser_error_test.rs
+│   └── parser_success_test.rs
 │
-├── Cargo.toml  (Arquivo de configuração do projeto Rust)
+├── test_data/
+│   └── alunos.csv
+│
+├── Cargo.toml
 ├── Cargo.lock
 └── README.md
+
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `lib.rs` | Expõe os módulos e integra o código gerado pelo ANTLR. |
+| `main.rs` | Recebe comandos do terminal e apresenta os resultados. |
+| `ast.rs` | Define as estruturas da AST. |
+| `ast_builder.rs` | Constrói a AST a partir da análise sintática. |
+| `ast_printer.rs` | Exibe a AST para facilitar a visualização e depuração. |
+| `csv_loader.rs` | Carrega os dados dos arquivos CSV. |
+| `table.rs` | Define banco de dados, tabelas, colunas e tipos. |
+| `executor.rs` | Executa comandos e consultas, incluindo a avaliação do `WHERE`. |
+| `tests/` | Contém testes de AST, parser e carregamento de CSV. |
+| `test_data/` | Guarda os CSVs utilizados nos testes manuais. |

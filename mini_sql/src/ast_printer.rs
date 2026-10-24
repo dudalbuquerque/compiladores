@@ -1,6 +1,8 @@
 use std::io::{self, Write};
 use mini_sql::ast_builder::AstBuilder;
 
+
+// Essa main recebe o statemnets e imprime a AST correspondente
 fn main() {
     let stdin = io::stdin();
 

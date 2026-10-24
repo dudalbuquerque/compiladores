@@ -10,3 +10,4 @@ pub mod ast;
 pub mod ast_builder;
 pub mod csv_loader;
 pub mod table;
+pub mod executor;
