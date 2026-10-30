@@ -1,7 +1,7 @@
 
 use crate::ast::{Program, Statement};
 use crate::ast_builder::AstBuilder;
-use crate::executor::{
+use crate::interpreter::{
     execute_describe,
     execute_load,
     execute_query,
