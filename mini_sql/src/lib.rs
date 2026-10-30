@@ -11,3 +11,5 @@ pub mod ast_builder;
 pub mod csv_loader;
 pub mod table;
 pub mod executor;
+pub mod pipeline;
+pub mod type_checker;

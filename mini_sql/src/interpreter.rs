@@ -1,6 +1,4 @@
-use crate::ast::{
-    Condition, Expr, Operator, Program, Query, SelectList, Statement, Value,
-};
+use crate::ast::{Condition, Describe, Expr, Load, Operator, Query, SelectList, Value, };
 use crate::csv_loader::load_csv;
 use crate::table::{Database, Table};
 
@@ -107,49 +105,41 @@ pub fn execute_query(query: &Query, database: &Database) -> Result<Table, String
     Ok(Table { columns, rows })
 }
 
-// essa função recebe a AST e o banco de dados, e retorna o resultado da execução
-pub fn execute_program(program: &Program, database: &mut Database,) -> Result<Vec<String>, String> {
-    let mut output = Vec::new();
 
-    for statement in &program.statements {
-        match statement {
-            Statement::Load(load) => {
-                let table = load_csv(&load.file)
-                    .map_err(|error| format!("Erro ao carregar CSV: {error}"))?;
+pub fn execute_load(
+    load: &Load,
+    database: &mut Database,
+) -> Result<String, String> {
+    let table = load_csv(&load.file)
+        .map_err(|error| format!("Erro ao carregar CSV: {error}"))?;
 
-                let name = std::path::Path::new(&load.file)
-                    .file_stem()
-                    .and_then(|name| name.to_str())
-                    .ok_or("Não foi possível obter o nome da tabela")?
-                    .to_string();
+    let name = std::path::Path::new(&load.file)
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .ok_or("Não foi possível obter o nome da tabela")?
+        .to_string();
 
-                database.insert(name.clone(), table);
-                output.push(format!("Tabela '{name}' carregada."));
-            }
+    database.insert(name.clone(), table);
 
-            Statement::Query(query) => {
-                let result = execute_query(query, database)?;
+    Ok(format!("Tabela '{name}' carregada."))
+}
 
-                for row in result.rows {
-                    output.push(row.join(" | "));
-                }
-            }
+pub fn execute_describe(
+    describe: &Describe,
+    database: &Database,
+) -> Result<Vec<String>, String> {
+    let table = database
+        .get(&describe.table)
+        .ok_or_else(|| format!("Tabela '{}' não encontrada", describe.table))?;
 
-            Statement::Describe(describe) => {
-                let table = database
-                    .get(&describe.table)
-                    .ok_or_else(|| {
-                        format!("Tabela '{}' não encontrada", describe.table)
-                    })?;
-
-                for column in &table.columns {
-                    output.push(format!("{}: {:?}", column.name, column.data_type));
-                }
-            }
-        }
-    }
+    let output = table
+        .columns
+        .iter()
+        .map(|column| format!("{}: {:?}", column.name, column.data_type))
+        .collect();
 
     Ok(output)
 }
+
 
 
