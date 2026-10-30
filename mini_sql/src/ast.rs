@@ -1,6 +1,23 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
-    pub queries: Vec<Query>,
+    pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Statement {
+    Query(Query),
+    Load(Load),
+    Describe(Describe),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Load {
+    pub file: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Describe {
+    pub table: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -3,7 +3,8 @@ use crate::mini_sql_lexer::MiniSqlLexer;
 use crate::mini_sql_parser::{
     self, miniSQLVisitor, AndLabelContext, ConditionContext, ExprContext, ExprCondLabelContext,
     ExpressaoInContext, InCondLabelContext, MiniSqlParser, NotLabelContext, OrLabelContext,
-    ParensLabelContext, ProgramContext, QueryContext, SelectListContext, ValueContext,
+    ParensLabelContext, ProgramContext, QueryContext, SelectListContext, StatementContext,
+    ValueContext,
 };
 
 use antlr4_runtime::FromRuleNode;
@@ -33,12 +34,31 @@ impl AstBuilder { //metodos associados
         Self::build_program(&root)
     }
 
+    // adiciona mais statements 
     pub fn build_program(ctx: &ProgramContext<'_>) -> Res<Program> {
-        let queries = ctx
-            .query_children()
-            .map(|q| Self::build_query(&q))
+        let statements = ctx
+            .statement_children()
+            .map(|s| Self::build_statement(&s))
             .collect::<Res<Vec<_>>>()?;
-        Ok(Program { queries })
+
+        Ok(Program { statements })
+    }
+
+    fn build_statement(ctx: &StatementContext<'_>) -> Res<Statement> {
+        if let Some(load) = ctx.load() {
+            let file = load.string_token().map_err(miss)?.to_string();
+            let file = file.trim_matches(|c| c == '\'' || c == '"').to_string();
+
+            Ok(Statement::Load(Load { file }))
+        } else if let Some(describe) = ctx.describe() {
+            let table = describe.id_token().map_err(miss)?.to_string();
+
+            Ok(Statement::Describe(Describe { table }))
+        } else if let Some(query) = ctx.query() {
+            Ok(Statement::Query(Self::build_query(&query)?))
+        } else {
+            Err("tipo de statement não reconhecido".to_string())
+        }
     }
 
     fn build_query(ctx: &QueryContext<'_>) -> Res<Query> {

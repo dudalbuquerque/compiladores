@@ -5,8 +5,8 @@
     {
       "name": "miniSQLParser",
       "summary": {
-        "total": 8,
-        "ll1": 5,
+        "total": 9,
+        "ll1": 6,
         "fixed": 0,
         "adaptive": 3
       },
@@ -14,60 +14,67 @@
         {
           "decision": 0,
           "rule": "program",
-          "state": 17,
+          "state": 23,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 1,
-          "rule": "query",
-          "state": 27,
+          "rule": "statement",
+          "state": 30,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 2,
-          "rule": "selectList",
-          "state": 36,
+          "rule": "query",
+          "state": 46,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 3,
           "rule": "selectList",
-          "state": 40,
+          "state": 55,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 4,
-          "rule": "expressaoIn",
-          "state": 50,
+          "rule": "selectList",
+          "state": 59,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 5,
+          "rule": "expressaoIn",
+          "state": 69,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 6,
           "rule": "condition",
-          "state": 64,
+          "state": 83,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "not-disjoint",
           "probedLookahead": 1
         },
         {
-          "decision": 6,
+          "decision": 7,
           "rule": "condition",
-          "state": 72,
+          "state": 91,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "predicate",
           "probedLookahead": 1
         },
         {
-          "decision": 7,
+          "decision": 8,
           "rule": "condition",
-          "state": 74,
+          "state": 93,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "precedence",

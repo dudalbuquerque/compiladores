@@ -11,9 +11,27 @@ grammar miniSQL;
 
 // REGRAS DE PARSER
 
-program : query+ EOF;
+program : statement+ EOF;
 
-query : FROM ID SELECT selectList  (WHERE condition)? END;
+statement
+    : query
+    | load
+    | describe
+    ;
+
+//permite importar CSV
+load
+    : LOAD STRING END
+    ;
+
+// permite descrever infos do arquivo csv/tabela
+describe
+     : DESCRIBE ID END
+     ;
+
+query
+    : FROM ID SELECT selectList (WHERE condition)? END
+    ;
 
 
 // Permite selecionar múltiplos campos (ex: a, b, c) ou '*'
@@ -57,7 +75,8 @@ value: ID
 SELECT : 'SELECT' | 'select';
 WHERE : 'WHERE' | 'where';
 FROM : 'FROM' | 'from';
-
+LOAD : 'LOAD' | 'load';
+DESCRIBE : 'DESCRIBE' | 'describe' | 'DESC' | 'desc';
 
 // operadores lógicos, precisam estar antes do ID por regra do lexer
 AND : 'AND' | 'and';
