@@ -1,4 +1,3 @@
-
 use std::io::{self, Write};
 
 use mini_sql::pipeline::run_pipeline;
@@ -39,7 +38,7 @@ fn main() {
                     println!("{line}");
                 }
             }
-            Err(error) => println!("Erro: {error}"),
+            Err(error) => println!("{error}"),
         }
     }
 }
