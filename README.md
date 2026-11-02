@@ -2,7 +2,7 @@
 
 Implementação de uma linguagem de consulta baseada em um subconjunto de SQL, desenvolvida para a disciplina de **Compiladores**. A gramática é escrita em ANTLR4 e o analisador é gerado em **Rust**.
 
-Este documento descreve o estado do projeto na **entrega parcial**, que cobre da definição da gramática até a construção da árvore sintática abstrata (AST).
+Este documento descreve o estado do projeto na **entrega parcial 2**, que cobre da definição da gramática até execução.
 
 ---
 
@@ -14,8 +14,8 @@ Este documento descreve o estado do projeto na **entrega parcial**, que cobre da
 | Análise léxica | concluída (lexer gerado) |
 | Análise sintática | concluída (parser gerado) |
 | Construção da AST | concluída (`ast_builder.rs`) |
-| Suíte de testes | 59 testes, todos passando |
-| Análise semântica / execução | não iniciada |
+| Suíte de testes | 5124 testes, todos passando |
+| Análise semântica e execução | concluída |
 
 ---
 
@@ -125,14 +125,24 @@ mini_sql/
 │   ├── table.rs
 │   └── type_checker.rs
 │
+├── target/
+│   └── código gerado pelo  cargo/rust
+│
+│
+├── test_data/
+│   ├── alunos.csv  
+│   └── users.csv
+│
+│
 ├── tests/
 │   ├── ast_test.rs
 │   ├── csv_loader_test.rs
+│   ├── interpreter_test.rs  
 │   ├── parser_error_test.rs
-│   └── parser_success_test.rs
+│   ├── parser_success_test.rs
+│   ├── pipeline_test.rs
+│   └── type_checker_test.rs
 │
-├── test_data/
-│   └── alunos.csv
 │
 ├── Cargo.toml
 ├── Cargo.lock
@@ -275,18 +285,35 @@ Program {
 Repare no aninhamento `And(And(...), ...)`: é a associatividade à esquerda dos conectivos aparecendo na estrutura da árvore.
 
 ---
-
 ## 7. Testes
 
-59 testes, distribuídos em três arquivos. Cada arquivo vira um executável independente.
+124 testes, distribuídos em sete arquivos. Cada arquivo vira um executável independente.
 
-| Arquivo | Testes | O que valida |
+| Arquivo | Testes | Fase | O que valida |
+|---|---|---|---|
+| `parser_success_test.rs` | 29 | sintática | consultas válidas são aceitas |
+| `parser_error_test.rs` | 34 | sintática | consultas inválidas são rejeitadas |
+| `ast_test.rs` | 3 | construção da AST | a AST construída tem a estrutura esperada |
+| `csv_loader_test.rs` | 1 | carga de dados | o CSV é lido e os tipos das colunas são inferidos |
+| `type_checker_test.rs` | 24 | semântica | tabelas e colunas inexistentes e tipos incompatíveis são rejeitados |
+| `interpreter_test.rs` | 25 | execução | LOAD, DESCRIBE, projeção, filtros do WHERE e tratamento de NULL |
+| `pipeline_test.rs` | 8 | ponta a ponta | texto SQL até a saída, com cada erro detectado na fase correta |
+
+Nos testes de parser, a maioria dos casos aparece em par: uma versão com palavras-chave em maiúsculas e outra com o sufixo `_minus`, em minúsculas.
+
+### Isolamento das fases
+
+Os testes do type checker e do interpretador **montam a AST à mão**, sem passar pelo parser. Assim, uma falha nesses arquivos aponta para a fase testada, e não para a gramática ou para o `ast_builder`. Apenas o `pipeline_test.rs` percorre todas as fases a partir do texto SQL. Ele também verifica que cada erro sai com o prefixo da fase em que foi detectado (`Erro de sintaxe`, `Erro semântico` ou `Erro de execução`).
+
+### Dados de teste
+
+| Arquivo | Colunas | Uso |
 |---|---|---|
-| `parser_success_test.rs` | 26 | consultas válidas são aceitas |
-| `parser_error_test.rs` | 32 | consultas inválidas são rejeitadas |
-| `ast_test.rs` | 1 | a AST construída tem a estrutura esperada |
+| `test_data/alunos.csv` | `nome` (String), `idade` (Int), `curso` (String) | carga do CSV e consultas simples |
+| `test_data/users.csv` | `name` (String), `age` (Int), `type` (String), `credit` (Float), `active` (Boolean) | type checker, interpretador e pipeline |
 
-A maioria dos casos aparece em par: uma versão com palavras-chave em maiúsculas e outra com o sufixo `_minus`, em minúsculas.
+O `users.csv` cobre os quatro tipos da linguagem e tem uma célula de `credit` vazia, usada nos testes de NULL.
+
 
 ### Critério de aceitação nos testes de erro
 
@@ -319,14 +346,53 @@ e mesmo assim `program()` retorna `Ok`. Só a consulta ao contador `number_of_sy
 
 ## 8. Como executar
 
+
 Pré-requisitos: [Rust](https://rustup.rs) (edição 2024).
 
 ```bash
 cd mini_sql
 
-cargo build           # compila
-cargo test            # roda os 59 testes
-cargo test --tests    # idem, sem os doctests herdados da biblioteca
+```
+
+### Como rodar o painel interativo
+
+```bash
+cargo run
+```
+
+```
+
+MiniSQL> LOAD 'test_data/users.csv';
+Tabela 'users' carregada (5 linhas).
+MiniSQL> DESC users;
+coluna | tipo
+-------+--------
+name   | String
+age    | Int
+type   | String
+credit | Float
+active | Boolean
+(5 colunas, 5 linhas)
+MiniSQL> FROM users SELECT name, credit WHERE type IN ('admin', 'editor') AND active = TRUE AND credit >= 150.50;
+name  | credit
+------+-------
+ana   | 200.75
+elisa | 310.0
+(2 linhas)
+MiniSQL> FROM users SELECT name WHERE age = 'vinte';
+Erro semântico: Tipos incompatíveis em `age = 'vinte'`: a coluna 'age' é Int e o literal 'vinte' é String
+MiniSQL> exit
+
+```
+
+### Como executar os testes
+
+```bash
+cargo build                                  # compila
+cargo test                                   # todos
+cargo test --test type_checker_test          # só um arquivo
+cargo test --test interpreter_test where_in  # só os teste cujo nome contém "where_in"
+
 ```
 
 Para inspecionar a AST de uma consulta, o teste da AST a imprime:
@@ -358,13 +424,6 @@ No Git Bash, use barra normal no caminho — a contrabarra é interpretada como 
 
 ---
 
-## 10. Próximos passos
-
-1. Análise semântica: verificar existência de colunas e compatibilidade de tipos nas comparações (hoje `1 = 1` é sintaticamente válido).
-2. Executor: aplicar a consulta sobre dados reais.
-3. Interface de linha de comando em `main.rs`.
-
----
 
 ## Tecnologias
 
