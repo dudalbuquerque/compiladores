@@ -1,15 +1,15 @@
-//! Roda sobre a AST, ANTES da execução, e rejeita programas que são
+// Roda sobre a AST, ANTES da execução, e rejeita programas que são
 
-//! - tabela inexistente (`FROM xyz` sem `LOAD` antes);
-//! - coluna inexistente no SELECT ou no WHERE;
-//! - comparação entre tipos incompatíveis (`idade = 'vinte'`);
-//! - operador de ordem em tipo sem ordem (`ativo > TRUE`);
-//! - lista do IN com tipos misturados (`idade IN (1, 'a')`);
-//! - LOAD de arquivo que não é `.csv` ou cujo nome não vira um identificador.
-//!
-//! O ambiente de tipos é o esquema das tabelas já carregadas: nome da
-//! tabela -> colunas e seus tipos (`table::Database`). Os tipos das colunas
-//! são inferidos pelo `csv_loader` no momento do LOAD.
+// - tabela inexistente (`FROM xyz` sem `LOAD` antes);
+// - coluna inexistente no SELECT ou no WHERE;
+// - comparação entre tipos incompatíveis (`idade = 'vinte'`);
+// - operador de ordem em tipo sem ordem (`ativo > TRUE`);
+// - lista do IN com tipos misturados (`idade IN (1, 'a')`);
+// - LOAD de arquivo que não é `.csv` ou cujo nome não vira um identificador.
+//
+// O ambiente de tipos é o esquema das tabelas já carregadas: nome da
+// tabela -> colunas e seus tipos (`table::Database`). Os tipos das colunas
+// são inferidos pelo `csv_loader` no momento do LOAD.
 
 
 //ponto de entrada é o statement, que pode ser LOAD, DESCRIBE ou SELECT. Cada um tem sua função de checagem.
