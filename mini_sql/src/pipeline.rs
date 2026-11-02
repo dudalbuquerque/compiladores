@@ -1,59 +1,35 @@
+// texto SQL --(lexer + parser + AstBuilder)--> AST
+//           --(type checker)-----------------> AST verificada
+//           --(interpretador)----------------> linhas de saída
+//
+// Cada statement é verificado e executado antes do próximo. Isso é
+// necessário porque o esquema de uma tabela só é conhecido depois que o
+// LOAD dela roda: em `LOAD 'alunos.csv'; FROM alunos SELECT nome;` o
+// type checker só consegue verificar a query depois que o LOAD executou.
 
-use crate::ast::{Program, Statement};
+use crate::ast::Program;
 use crate::ast_builder::AstBuilder;
-use crate::interpreter::{
-    execute_describe,
-    execute_load,
-    execute_query,
-};
+use crate::interpreter::execute_statement;
 use crate::table::Database;
-use crate::type_checker::check_condition;
+use crate::type_checker::check_statement;
 
-pub fn run_pipeline(
-    sql: &str,
-    database: &mut Database,
-) -> Result<Vec<String>, String> {
-    // Análise sintática: SQL -> AST.
-    let program: Program = AstBuilder::parse_sql(sql)?;
+pub fn run_pipeline(sql: &str, database: &mut Database) -> Result<Vec<String>, String> {
+    let program: Program = AstBuilder::parse_sql(sql).map_err(|e| format!("Erro de sintaxe: {e}"))?;
 
-    // Validação semântica e execução.
-    execute_pipeline(&program, database)
+    execute_program(&program, database)
 }
 
-fn execute_pipeline(
-    program: &Program,
-    database: &mut Database,
-) -> Result<Vec<String>, String> {
+/// Para no primeiro erro (semântico ou de execução).
+pub fn execute_program(program: &Program, database: &mut Database) -> Result<Vec<String>, String> {
     let mut output = Vec::new();
 
     for statement in &program.statements {
-        match statement {
-            Statement::Load(load) => {
-                output.push(execute_load(load, database)?);
-            }
+        // Análise semântica.
+        check_statement(statement, database).map_err(|e| format!("Erro semântico: {e}"))?;
 
-            Statement::Query(query) => {
-                let table = database
-                    .get(&query.table)
-                    .ok_or_else(|| {
-                        format!("Tabela '{}' não encontrada", query.table)
-                    })?;
-
-                if let Some(condition) = &query.condition {
-                    check_condition(condition, table)?;
-                }
-
-                let result = execute_query(query, database)?;
-
-                for row in result.rows {
-                    output.push(row.join(" | "));
-                }
-            }
-
-            Statement::Describe(describe) => {
-                output.extend(execute_describe(describe, database)?);
-            }
-        }
+        // Execução.
+        let lines = execute_statement(statement, database).map_err(|e| format!("Erro de execução: {e}"))?;
+        output.extend(lines);
     }
 
     Ok(output)
