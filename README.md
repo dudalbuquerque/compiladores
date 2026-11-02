@@ -79,6 +79,32 @@ As fases 1 e 2 são **código gerado** pelo ANTLR a partir da gramática. A fase
 
 Um passo intermediário que o diagrama resume: entre a análise léxica e a sintática existe um fluxo de tokens. Para a consulta `FROM users SELECT name WHERE credit >= 150.50;`, o parser recebe exatamente isto:
 
+
+```text
+[FROM] [ID:users] [SELECT] [ID:name] [WHERE] [ID:credit] [GREATER_EQUAL] [FLOAT:150.50] [END:;] [EOF]
+```
+
+Terminada a fase 3, a AST é a entrada da **próxima entrega**: análise semântica e execução.
+
+### 3.3 O que é gerado e o que é nosso
+
+Esta é a divisão mais importante do projeto: **o parser não foi escrito por nós**. O que escrevemos foi a *definição da linguagem*; o algoritmo que reconhece essa linguagem é derivado dela automaticamente.
+
+| Componente | Linhas | Origem |
+|---|---|---|
+| `grammar/miniSQL.g4` | 102 | escrito à mão |
+| `generated/mini_sql_lexer.rs` | 149 | gerado pelo ANTLR |
+| `generated/mini_sql_parser.rs` | 2041 | gerado pelo ANTLR |
+| `src/ast.rs` | 60 | escrito à mão |
+| `src/ast_builder.rs` | 175 | escrito à mão |
+| `tests/` | 475 | escrito à mão |
+
+Consequência prática para a suíte de testes: quando um teste falha, o defeito está quase sempre na **gramática** ou na **expectativa do teste** — o ANTLR é infraestrutura de terceiros, com a própria suíte de validação.
+
+---
+
+## 4. Estrutura de arquivos
+
 ```text
 mini_sql/
 ├── generated/
@@ -88,14 +114,16 @@ mini_sql/
 │   └── miniSQL.g4
 │
 ├── src/
+│   ├── ast_builder.rs  
+│   ├── ast_printer.rs
+│   ├── ast.rs
+│   ├── csv_loader.rs
+│   ├── interpreter.rs
 │   ├── lib.rs
 │   ├── main.rs
-│   ├── ast.rs
-│   ├── ast_builder.rs
-│   ├── ast_printer.rs
-│   ├── csv_loader.rs
+│   ├── pipeline.rs
 │   ├── table.rs
-│   └── executor.rs
+│   └── type_checker.rs
 │
 ├── tests/
 │   ├── ast_test.rs
@@ -126,53 +154,6 @@ mini_sql/
 [FROM] [ID:users] [SELECT] [ID:name] [WHERE] [ID:credit] [GREATER_EQUAL] [FLOAT:150.50] [END:;] [EOF]
 ```
 
-Terminada a fase 3, a AST é a entrada da **próxima entrega**: análise semântica e execução.
-
-### 3.3 O que é gerado e o que é nosso
-
-Esta é a divisão mais importante do projeto: **o parser não foi escrito por nós**. O que escrevemos foi a *definição da linguagem*; o algoritmo que reconhece essa linguagem é derivado dela automaticamente.
-
-| Componente | Linhas | Origem |
-|---|---|---|
-| `grammar/miniSQL.g4` | 102 | escrito à mão |
-| `generated/mini_sql_lexer.rs` | 149 | gerado pelo ANTLR |
-| `generated/mini_sql_parser.rs` | 2041 | gerado pelo ANTLR |
-| `src/ast.rs` | 60 | escrito à mão |
-| `src/ast_builder.rs` | 175 | escrito à mão |
-| `tests/` | 475 | escrito à mão |
-
-Consequência prática para a suíte de testes: quando um teste falha, o defeito está quase sempre na **gramática** ou na **expectativa do teste** — o ANTLR é infraestrutura de terceiros, com a própria suíte de validação.
-
----
-
-## 4. Estrutura de arquivos
-
-```text
-mini_sql/
-├── grammar/
-│   └── miniSQL.g4               definição da linguagem (lexer + parser)
-│
-├── generated/                   código gerado pelo ANTLR — não editar
-│   ├── mini_sql_lexer.rs
-│   ├── mini_sql_parser.rs
-│   ├── decisions.json
-│   └── semantics.json
-│
-├── src/
-│   ├── lib.rs                   inclui o código gerado e declara os módulos
-│   ├── ast.rs                   tipos da AST
-│   ├── ast_builder.rs           parse tree → AST
-│   └── main.rs                  binário (ainda vazio)
-│
-├── tests/
-│   ├── parser_success_test.rs   26 testes — consultas válidas
-│   ├── parser_error_test.rs     32 testes — consultas inválidas
-│   └── ast_test.rs               1 teste  — forma da AST
-│
-├── Cargo.toml
-└── Cargo.lock
-```
-
 ---
 
 ## 5. A gramática
@@ -182,7 +163,12 @@ Arquivo: [`mini_sql/grammar/miniSQL.g4`](mini_sql/grammar/miniSQL.g4)
 ### Regras de parser
 
 ```antlr
-program     : query+ EOF ;
+program     : statement+ EOF;
+statement   : query
+            | load
+            | describe;
+load        : LOAD STRING END;
+describe    : DESCRIBE ID END ;
 query       : FROM ID SELECT selectList (WHERE condition)? END ;
 selectList  : ID (',' ID)* | STAR ;
 condition   : NOT inner=condition                  # not
@@ -356,7 +342,8 @@ Necessário apenas após alterar a gramática:
 ```bash
 cargo install antlr-rust-codegen --bin antlr4-rust-gen   # uma única vez
 cd mini_sql
-antlr4-rust-gen --out-dir generated grammar/miniSQL.g4
+antlr4-rust-gen --visitor --out-dir generated grammar/miniSQL.g4
+
 ```
 
 No Git Bash, use barra normal no caminho — a contrabarra é interpretada como escape.
@@ -366,8 +353,7 @@ No Git Bash, use barra normal no caminho — a contrabarra é interpretada como 
 ## 9. Limitações conhecidas
 
 - O helper `parse()` de `parser_success_test.rs` usa apenas `program().is_ok()`, critério que aceita parses recuperados. Por isso `test_negative_numbers` afirma como válida uma consulta sem `;` que o parser na verdade rejeita (`missing ';' at '<EOF>'`). O critério precisa ser alinhado ao de `parser_error_test.rs`.
-- A AST tem cobertura de apenas 1 teste para 175 linhas de `ast_builder.rs`.
-- `src/main.rs` está vazio: ainda não há interface de linha de comando.
+- A AST tem cobertura de apenas 3 teste para 175 linhas de `ast_builder.rs`.
 - A variante `Condition::Parens` preserva os parênteses na AST. Como eles já não têm efeito sobre a estrutura da árvore, são informação redundante.
 
 ---

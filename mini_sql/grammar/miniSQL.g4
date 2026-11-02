@@ -13,25 +13,17 @@ grammar miniSQL;
 
 program : statement+ EOF;
 
-statement
-    : query
-    | load
-    | describe
-    ;
+statement: query
+          | load
+          | describe ;
 
 //permite importar CSV
-load
-    : LOAD STRING END
-    ;
+load: LOAD STRING END;
 
 // permite descrever infos do arquivo csv/tabela
-describe
-     : DESCRIBE ID END
-     ;
+describe: DESCRIBE ID END ;
 
-query
-    : FROM ID SELECT selectList (WHERE condition)? END
-    ;
+query: FROM ID SELECT selectList (WHERE condition)? END ;
 
 
 // Permite selecionar múltiplos campos (ex: a, b, c) ou '*'

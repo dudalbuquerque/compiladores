@@ -1,0 +1,6 @@
+name,age,type,credit,active
+ana,20,admin,200.75,true
+bruno,17,editor,150.5,false
+carla,35,viewer,99.9,true
+diego,42,admin,,true
+elisa,28,editor,310.0,true
