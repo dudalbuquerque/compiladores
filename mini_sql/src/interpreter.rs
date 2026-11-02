@@ -9,7 +9,7 @@
 use std::cmp::Ordering;
 
 use crate::ast::{Condition, Describe, Expr, ExprIn, Load, Operator, Query, SelectList, Statement, Value};
-use crate::csv_loader::load_csv, table_name_from_path;
+use crate::csv_loader::{load_csv, table_name_from_path};
 use crate::table::{Column, DataType, Database, Table};
 
 pub type ExecResult<T> = Result<T, String>;
