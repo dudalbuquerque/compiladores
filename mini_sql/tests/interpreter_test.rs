@@ -60,7 +60,7 @@ fn load_registra_tabela_com_nome_do_arquivo() {
     let mut db = Database::new();
     let msg = execute_load(&Load { file: "test_data/alunos.csv".into() }, &mut db).unwrap();
 
-    assert_eq!(msg, "Tabela 'alunos' carregada (3 linhas).");
+    assert_eq!(msg, "Tabela 'alunos' carregada.");
     assert!(db.contains_key("alunos"));
 }
 

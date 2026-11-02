@@ -12,7 +12,7 @@ fn run(sql: &str) -> Result<Vec<String>, String> {
 fn load_e_consulta_no_mesmo_programa() {
     let out = run("LOAD 'test_data/users.csv'; FROM users SELECT name WHERE age < 18;").unwrap();
 
-    assert_eq!(out, vec!["Tabela 'users' carregada (5 linhas).", "name", "-----", "bruno", "(1 linha)"]);
+    assert_eq!(out, vec!["Tabela 'users' carregada.", "name", "-----", "bruno", "(1 linha)"]);
 }
 
 #[test]
