@@ -75,3 +75,37 @@ pub enum Operator {
 }
 
 
+// Formatação legível dos nós, usada nas mensagens de erro
+// (ex.: "idade >= 'vinte'" em vez de "Expr { left: Id(\"idade\"), ... }").
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Id(name) => write!(f, "{name}"),
+            Value::Int(v) => write!(f, "{v}"),
+            Value::Float(v) => write!(f, "{v}"),
+            Value::String(v) => write!(f, "'{v}'"),
+            Value::Boolean(v) => write!(f, "{}", if *v { "TRUE" } else { "FALSE" }),
+        }
+    }
+}
+
+impl std::fmt::Display for Operator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let symbol = match self {
+            Operator::Equal => "=",
+            Operator::NotEqual => "!=",
+            Operator::Less => "<",
+            Operator::LessEqual => "<=",
+            Operator::Greater => ">",
+            Operator::GreaterEqual => ">=",
+        };
+        write!(f, "{symbol}")
+    }
+}
+
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {}", self.left, self.op, self.right)
+    }
+}
