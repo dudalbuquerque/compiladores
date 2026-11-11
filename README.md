@@ -2,7 +2,7 @@
 
 Implementação de uma linguagem de consulta baseada em um subconjunto de SQL, desenvolvida para a disciplina de **Compiladores**. A gramática é escrita em ANTLR4 e o analisador é gerado em **Rust**.
 
-Este documento descreve o estado do projeto na **entrega parcial**, que cobre da definição da gramática até a construção da árvore sintática abstrata (AST).
+Este documento descreve o estado do projeto na **entrega parcial 2**, que cobre da definição da gramática até execução.
 
 ---
 
@@ -14,8 +14,8 @@ Este documento descreve o estado do projeto na **entrega parcial**, que cobre da
 | Análise léxica | concluída (lexer gerado) |
 | Análise sintática | concluída (parser gerado) |
 | Construção da AST | concluída (`ast_builder.rs`) |
-| Suíte de testes | 59 testes, todos passando |
-| Análise semântica / execução | não iniciada |
+| Suíte de testes | 5124 testes, todos passando |
+| Análise semântica e execução | concluída |
 
 ---
 
@@ -79,50 +79,8 @@ As fases 1 e 2 são **código gerado** pelo ANTLR a partir da gramática. A fase
 
 Um passo intermediário que o diagrama resume: entre a análise léxica e a sintática existe um fluxo de tokens. Para a consulta `FROM users SELECT name WHERE credit >= 150.50;`, o parser recebe exatamente isto:
 
+
 ```text
-mini_sql/
-├── generated/
-│   └── código gerado pelo ANTLR
-│
-├── grammar/
-│   └── miniSQL.g4
-│
-├── src/
-│   ├── lib.rs
-│   ├── main.rs
-│   ├── ast.rs
-│   ├── ast_builder.rs
-│   ├── ast_printer.rs
-│   ├── csv_loader.rs
-│   ├── table.rs
-│   └── executor.rs
-│
-├── tests/
-│   ├── ast_test.rs
-│   ├── csv_loader_test.rs
-│   ├── parser_error_test.rs
-│   └── parser_success_test.rs
-│
-├── test_data/
-│   └── alunos.csv
-│
-├── Cargo.toml
-├── Cargo.lock
-└── README.md
-
-
-| Arquivo | Responsabilidade |
-|---|---|
-| `lib.rs` | Expõe os módulos e integra o código gerado pelo ANTLR. |
-| `main.rs` | Recebe comandos do terminal e apresenta os resultados. |
-| `ast.rs` | Define as estruturas da AST. |
-| `ast_builder.rs` | Constrói a AST a partir da análise sintática. |
-| `ast_printer.rs` | Exibe a AST para facilitar a visualização e depuração. |
-| `csv_loader.rs` | Carrega os dados dos arquivos CSV. |
-| `table.rs` | Define banco de dados, tabelas, colunas e tipos. |
-| `executor.rs` | Executa comandos e consultas, incluindo a avaliação do `WHERE`. |
-| `tests/` | Contém testes de AST, parser e carregamento de CSV. |
-| `test_data/` | Guarda os CSVs utilizados nos testes manuais. |
 [FROM] [ID:users] [SELECT] [ID:name] [WHERE] [ID:credit] [GREATER_EQUAL] [FLOAT:150.50] [END:;] [EOF]
 ```
 
@@ -149,28 +107,61 @@ Consequência prática para a suíte de testes: quando um teste falha, o defeito
 
 ```text
 mini_sql/
-├── grammar/
-│   └── miniSQL.g4               definição da linguagem (lexer + parser)
+├── generated/
+│   └── código gerado pelo ANTLR
 │
-├── generated/                   código gerado pelo ANTLR — não editar
-│   ├── mini_sql_lexer.rs
-│   ├── mini_sql_parser.rs
-│   ├── decisions.json
-│   └── semantics.json
+├── grammar/
+│   └── miniSQL.g4
 │
 ├── src/
-│   ├── lib.rs                   inclui o código gerado e declara os módulos
-│   ├── ast.rs                   tipos da AST
-│   ├── ast_builder.rs           parse tree → AST
-│   └── main.rs                  binário (ainda vazio)
+│   ├── ast_builder.rs  
+│   ├── ast_printer.rs
+│   ├── ast.rs
+│   ├── csv_loader.rs
+│   ├── interpreter.rs
+│   ├── lib.rs
+│   ├── main.rs
+│   ├── pipeline.rs
+│   ├── table.rs
+│   └── type_checker.rs
+│
+├── target/
+│   └── código gerado pelo  cargo/rust
+│
+│
+├── test_data/
+│   ├── alunos.csv  
+│   └── users.csv
+│
 │
 ├── tests/
-│   ├── parser_success_test.rs   26 testes — consultas válidas
-│   ├── parser_error_test.rs     32 testes — consultas inválidas
-│   └── ast_test.rs               1 teste  — forma da AST
+│   ├── ast_test.rs
+│   ├── csv_loader_test.rs
+│   ├── interpreter_test.rs  
+│   ├── parser_error_test.rs
+│   ├── parser_success_test.rs
+│   ├── pipeline_test.rs
+│   └── type_checker_test.rs
+│
 │
 ├── Cargo.toml
-└── Cargo.lock
+├── Cargo.lock
+└── README.md
+
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `lib.rs` | Expõe os módulos e integra o código gerado pelo ANTLR. |
+| `main.rs` | Recebe comandos do terminal e apresenta os resultados. |
+| `ast.rs` | Define as estruturas da AST. |
+| `ast_builder.rs` | Constrói a AST a partir da análise sintática. |
+| `ast_printer.rs` | Exibe a AST para facilitar a visualização e depuração. |
+| `csv_loader.rs` | Carrega os dados dos arquivos CSV. |
+| `table.rs` | Define banco de dados, tabelas, colunas e tipos. |
+| `executor.rs` | Executa comandos e consultas, incluindo a avaliação do `WHERE`. |
+| `tests/` | Contém testes de AST, parser e carregamento de CSV. |
+| `test_data/` | Guarda os CSVs utilizados nos testes manuais. |
+[FROM] [ID:users] [SELECT] [ID:name] [WHERE] [ID:credit] [GREATER_EQUAL] [FLOAT:150.50] [END:;] [EOF]
 ```
 
 ---
@@ -182,7 +173,12 @@ Arquivo: [`mini_sql/grammar/miniSQL.g4`](mini_sql/grammar/miniSQL.g4)
 ### Regras de parser
 
 ```antlr
-program     : query+ EOF ;
+program     : statement+ EOF;
+statement   : query
+            | load
+            | describe;
+load        : LOAD STRING END;
+describe    : DESCRIBE ID END ;
 query       : FROM ID SELECT selectList (WHERE condition)? END ;
 selectList  : ID (',' ID)* | STAR ;
 condition   : NOT inner=condition                  # not
@@ -289,18 +285,35 @@ Program {
 Repare no aninhamento `And(And(...), ...)`: é a associatividade à esquerda dos conectivos aparecendo na estrutura da árvore.
 
 ---
-
 ## 7. Testes
 
-59 testes, distribuídos em três arquivos. Cada arquivo vira um executável independente.
+124 testes, distribuídos em sete arquivos. Cada arquivo vira um executável independente.
 
-| Arquivo | Testes | O que valida |
+| Arquivo | Testes | Fase | O que valida |
+|---|---|---|---|
+| `parser_success_test.rs` | 29 | sintática | consultas válidas são aceitas |
+| `parser_error_test.rs` | 34 | sintática | consultas inválidas são rejeitadas |
+| `ast_test.rs` | 3 | construção da AST | a AST construída tem a estrutura esperada |
+| `csv_loader_test.rs` | 1 | carga de dados | o CSV é lido e os tipos das colunas são inferidos |
+| `type_checker_test.rs` | 24 | semântica | tabelas e colunas inexistentes e tipos incompatíveis são rejeitados |
+| `interpreter_test.rs` | 25 | execução | LOAD, DESCRIBE, projeção, filtros do WHERE e tratamento de NULL |
+| `pipeline_test.rs` | 8 | ponta a ponta | texto SQL até a saída, com cada erro detectado na fase correta |
+
+Nos testes de parser, a maioria dos casos aparece em par: uma versão com palavras-chave em maiúsculas e outra com o sufixo `_minus`, em minúsculas.
+
+### Isolamento das fases
+
+Os testes do type checker e do interpretador **montam a AST à mão**, sem passar pelo parser. Assim, uma falha nesses arquivos aponta para a fase testada, e não para a gramática ou para o `ast_builder`. Apenas o `pipeline_test.rs` percorre todas as fases a partir do texto SQL. Ele também verifica que cada erro sai com o prefixo da fase em que foi detectado (`Erro de sintaxe`, `Erro semântico` ou `Erro de execução`).
+
+### Dados de teste
+
+| Arquivo | Colunas | Uso |
 |---|---|---|
-| `parser_success_test.rs` | 26 | consultas válidas são aceitas |
-| `parser_error_test.rs` | 32 | consultas inválidas são rejeitadas |
-| `ast_test.rs` | 1 | a AST construída tem a estrutura esperada |
+| `test_data/alunos.csv` | `nome` (String), `idade` (Int), `curso` (String) | carga do CSV e consultas simples |
+| `test_data/users.csv` | `name` (String), `age` (Int), `type` (String), `credit` (Float), `active` (Boolean) | type checker, interpretador e pipeline |
 
-A maioria dos casos aparece em par: uma versão com palavras-chave em maiúsculas e outra com o sufixo `_minus`, em minúsculas.
+O `users.csv` cobre os quatro tipos da linguagem e tem uma célula de `credit` vazia, usada nos testes de NULL.
+
 
 ### Critério de aceitação nos testes de erro
 
@@ -333,14 +346,53 @@ e mesmo assim `program()` retorna `Ok`. Só a consulta ao contador `number_of_sy
 
 ## 8. Como executar
 
+
 Pré-requisitos: [Rust](https://rustup.rs) (edição 2024).
 
 ```bash
 cd mini_sql
 
-cargo build           # compila
-cargo test            # roda os 59 testes
-cargo test --tests    # idem, sem os doctests herdados da biblioteca
+```
+
+### Como rodar o painel interativo
+
+```bash
+cargo run
+```
+
+```
+
+MiniSQL> LOAD 'test_data/users.csv';
+Tabela 'users' carregada (5 linhas).
+MiniSQL> DESC users;
+coluna | tipo
+-------+--------
+name   | String
+age    | Int
+type   | String
+credit | Float
+active | Boolean
+(5 colunas, 5 linhas)
+MiniSQL> FROM users SELECT name, credit WHERE type IN ('admin', 'editor') AND active = TRUE AND credit >= 150.50;
+name  | credit
+------+-------
+ana   | 200.75
+elisa | 310.0
+(2 linhas)
+MiniSQL> FROM users SELECT name WHERE age = 'vinte';
+Erro semântico: Tipos incompatíveis em `age = 'vinte'`: a coluna 'age' é Int e o literal 'vinte' é String
+MiniSQL> exit
+
+```
+
+### Como executar os testes
+
+```bash
+cargo build                                  # compila
+cargo test                                   # todos
+cargo test --test type_checker_test          # só um arquivo
+cargo test --test interpreter_test where_in  # só os teste cujo nome contém "where_in"
+
 ```
 
 Para inspecionar a AST de uma consulta, o teste da AST a imprime:
@@ -356,7 +408,8 @@ Necessário apenas após alterar a gramática:
 ```bash
 cargo install antlr-rust-codegen --bin antlr4-rust-gen   # uma única vez
 cd mini_sql
-antlr4-rust-gen --out-dir generated grammar/miniSQL.g4
+antlr4-rust-gen --visitor --out-dir generated grammar/miniSQL.g4
+
 ```
 
 No Git Bash, use barra normal no caminho — a contrabarra é interpretada como escape.
@@ -366,19 +419,11 @@ No Git Bash, use barra normal no caminho — a contrabarra é interpretada como 
 ## 9. Limitações conhecidas
 
 - O helper `parse()` de `parser_success_test.rs` usa apenas `program().is_ok()`, critério que aceita parses recuperados. Por isso `test_negative_numbers` afirma como válida uma consulta sem `;` que o parser na verdade rejeita (`missing ';' at '<EOF>'`). O critério precisa ser alinhado ao de `parser_error_test.rs`.
-- A AST tem cobertura de apenas 1 teste para 175 linhas de `ast_builder.rs`.
-- `src/main.rs` está vazio: ainda não há interface de linha de comando.
+- A AST tem cobertura de apenas 3 teste para 175 linhas de `ast_builder.rs`.
 - A variante `Condition::Parens` preserva os parênteses na AST. Como eles já não têm efeito sobre a estrutura da árvore, são informação redundante.
 
 ---
 
-## 10. Próximos passos
-
-1. Análise semântica: verificar existência de colunas e compatibilidade de tipos nas comparações (hoje `1 = 1` é sintaticamente válido).
-2. Executor: aplicar a consulta sobre dados reais.
-3. Interface de linha de comando em `main.rs`.
-
----
 
 ## Tecnologias
 

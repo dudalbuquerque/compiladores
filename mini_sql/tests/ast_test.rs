@@ -84,7 +84,11 @@ fn test_ast_generation() {
 fn test_load_statement() {
     let ast = AstBuilder::parse_sql("LOAD 'users.csv';")
         .expect("Falha ao construir AST do LOAD");
-
+    
+    println!("\n=== AST: LOAD ===");
+    println!("{:#?}", ast);
+    println!("=================\n");
+    
     assert_eq!(
         ast.statements,
         vec![Statement::Load(Load {
@@ -97,6 +101,10 @@ fn test_load_statement() {
 fn test_describe_statement() {
     let ast = AstBuilder::parse_sql("DESCRIBE users;")
         .expect("Falha ao construir AST do DESCRIBE");
+
+    println!("\n=== AST: DESCRIBE ===");
+    println!("{:#?}", ast);
+    println!("=================\n");
 
     assert_eq!(
         ast.statements,
