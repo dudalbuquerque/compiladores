@@ -4,7 +4,7 @@
 //
 // Cada statement é verificado e executado antes do próximo. Isso é
 // necessário porque o esquema de uma tabela só é conhecido depois que o
-// LOAD dela roda: em `LOAD 'alunos.csv'; FROM alunos SELECT nome;` o
+// LOAD dela roda: em `LOAD 'test_data/alunos.csv'; FROM alunos SELECT nome;` o
 // type checker só consegue verificar a query depois que o LOAD executou.
 
 use crate::ast::Program;

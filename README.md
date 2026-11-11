@@ -14,7 +14,7 @@ Este documento descreve o estado do projeto na **entrega parcial 2**, que cobre 
 | Análise léxica | concluída (lexer gerado) |
 | Análise sintática | concluída (parser gerado) |
 | Construção da AST | concluída (`ast_builder.rs`) |
-| Suíte de testes | 5124 testes, todos passando |
+| Suíte de testes | 124 testes, todos passando |
 | Análise semântica e execução | concluída |
 
 ---
@@ -363,7 +363,7 @@ cargo run
 ```
 
 MiniSQL> LOAD 'test_data/users.csv';
-Tabela 'users' carregada (5 linhas).
+Tabela 'users' carregada.
 MiniSQL> DESC users;
 coluna | tipo
 -------+--------
@@ -430,3 +430,15 @@ No Git Bash, use barra normal no caminho — a contrabarra é interpretada como 
 - **Rust** (edição 2024) e **Cargo**
 - **ANTLR4** para a definição da gramática
 - [`antlr-rust-runtime` / `antlr-rust-codegen`](https://github.com/ophi-dev/antlr-rust-runtime) 0.34.0 — implementação independente em Rust que gera os reconhecedores a partir do `.g4` e os executa, sem dependência de Java
+
+
+
+
+
+## To Do
+- option antlr pra erros de sintaxe ;
+- func;oes basicas sql
+- join
+- order by
+- gropu by
+- operadores algébricos
