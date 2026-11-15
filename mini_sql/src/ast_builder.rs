@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::mini_sql_lexer::MiniSqlLexer;
 use crate::mini_sql_parser::{
     self, miniSQLVisitor, AndLabelContext, ConditionContext, ExprContext, ExprCondLabelContext,
-    ExpressaoInContext, InCondLabelContext, MiniSqlParser, NotLabelContext, OrLabelContext,
+    ExpressaoInContext, InCondLabelContext, JoinContext, MiniSqlParser, NotLabelContext, OrLabelContext,
     ParensLabelContext, ProgramContext, QueryContext, SelectListContext, StatementContext,
     ValueContext,
 };
@@ -62,8 +62,14 @@ impl AstBuilder { //metodos associados
     }
 
     fn build_query(ctx: &QueryContext<'_>) -> Res<Query> {
-        // query : FROM ID SELECT selectList (WHERE condition)? END
+        // query : FROM ID (join)* SELECT selectList (WHERE condition)? END
         let table = ctx.id_token().map_err(miss)?.to_string();
+
+        let joins = ctx
+            .join_children()
+            .map(|j| Self::build_join(&j))
+            .collect::<Res<Vec<_>>>()?;
+
         let select = Self::build_select_list(&ctx.select_list().map_err(miss)?);
 
         let condition = match ctx.condition() {
@@ -71,7 +77,7 @@ impl AstBuilder { //metodos associados
             None => None,
         };
 
-        Ok(Query { table, select, condition })
+        Ok(Query { table, joins, select, condition })
     }
 
     fn build_select_list(ctx: &SelectListContext<'_>) -> SelectList {
@@ -87,6 +93,20 @@ impl AstBuilder { //metodos associados
                     .collect(),
             )
         }
+    }
+
+    fn build_join(ctx: &JoinContext<'_>) -> Res<Join> {
+        // join : JOIN ID '.' ID ON expr ;
+        let ids: Vec<_> = ctx.id_tokens().collect();
+        if ids.len() < 2 {
+            return Err("esperado formato de join qualificado (tabela.coluna ou similar)".to_string());
+        }
+        
+        let qualifier = ids[0].to_string();
+        let table = ids[1].to_string();
+        let condition = Self::build_expr(&ctx.expr().map_err(miss)?)?;
+
+        Ok(Join { qualifier, table, condition })
     }
 
     fn build_condition(ctx: &ConditionContext<'_>) -> Res<Condition> {

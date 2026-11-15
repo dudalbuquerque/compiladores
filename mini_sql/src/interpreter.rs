@@ -73,22 +73,29 @@ pub fn execute_describe(describe: &Describe, database: &Database) -> ExecResult<
 
 /// FROM tabela SELECT ... WHERE ...; -> devolve uma nova tabela com o resultado.
 pub fn execute_query(query: &Query, database: &Database) -> ExecResult<Table> {
-    let table = get_table(&query.table, database)?;
+    // Começa com a tabela principal do FROM
+    let mut current_table = get_table(&query.table, database)?.clone();
 
-    // Projeção: índices das colunas pedidas no SELECT.
+    // Aplica cada JOIN em sequência
+    for join in &query.joins {
+        let right_table = get_table(&join.table, database)?;
+        current_table = execute_join(&current_table, right_table, &join.condition)?;
+    }
+
+    // Projeção: índices das colunas pedidas no SELECT (sobre a tabela já com os joins aplicados)
     let selected: Vec<usize> = match &query.select {
-        SelectList::All => (0..table.columns.len()).collect(),
+        SelectList::All => (0..current_table.columns.len()).collect(),
         SelectList::Columns(names) => names
             .iter()
-            .map(|name| column_index(name, table))
+            .map(|name| column_index(name, &current_table))
             .collect::<ExecResult<_>>()?,
     };
 
     // Seleção: mantém só as linhas em que o WHERE é verdadeiro.
     let mut rows = Vec::new();
-    for row in &table.rows {
+    for row in &current_table.rows {
         let keep = match &query.condition {
-            Some(condition) => evaluate_condition(condition, row, table)? == Some(true),
+            Some(condition) => evaluate_condition(condition, row, &current_table)? == Some(true),
             None => true,
         };
 
@@ -97,7 +104,42 @@ pub fn execute_query(query: &Query, database: &Database) -> ExecResult<Table> {
         }
     }
 
-    let columns = selected.iter().map(|&i| table.columns[i].clone()).collect();
+    let columns = selected.iter().map(|&i| current_table.columns[i].clone()).collect();
+
+    Ok(Table { columns, rows })
+}
+
+fn execute_join(
+    left_table: &Table,
+    right_table: &Table,
+    _join_cond: &Expr,
+) -> ExecResult<Table> {
+    // Combina as colunas das duas tabelas
+    let mut columns = left_table.columns.clone();
+    columns.extend(right_table.columns.clone());
+
+    // Cria a tabela temporária para o escopo das colunas combinadas
+    let combined_table = Table {
+        columns: columns.clone(),
+        rows: Vec::new(),
+    };
+
+    // CORREÇÃO AQUI: adicione o `mut`
+    let mut rows = Vec::new();
+
+    // Itera sobre todas as combinações de linhas (Produto Cartesiano)
+    for left_row in &left_table.rows {
+        for right_row in &right_table.rows {
+            let mut combined_row = left_row.clone();
+            combined_row.extend(right_row.clone());
+
+            // Avalia a condição do JOIN usando a tabela combinada
+            let matches = evaluate_expr(_join_cond, &combined_row, &combined_table)? == Some(true);
+            if matches {
+                rows.push(combined_row);
+            }
+        }
+    }
 
     Ok(Table { columns, rows })
 }

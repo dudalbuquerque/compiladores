@@ -23,8 +23,16 @@ pub struct Describe {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Query {
     pub table: String,
+    pub joins: Vec<Join>,
     pub select: SelectList,
     pub condition: Option<Condition>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Join {
+    pub qualifier: String,
+    pub table: String,
+    pub condition: Expr,
 }
 
 #[derive(Debug, Clone, PartialEq)]

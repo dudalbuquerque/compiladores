@@ -5,8 +5,8 @@
     {
       "name": "miniSQLParser",
       "summary": {
-        "total": 9,
-        "ll1": 6,
+        "total": 10,
+        "ll1": 7,
         "fixed": 0,
         "adaptive": 3
       },
@@ -14,67 +14,74 @@
         {
           "decision": 0,
           "rule": "program",
-          "state": 23,
+          "state": 25,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 1,
           "rule": "statement",
-          "state": 30,
+          "state": 32,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 2,
           "rule": "query",
-          "state": 46,
+          "state": 47,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 3,
-          "rule": "selectList",
-          "state": 55,
+          "rule": "query",
+          "state": 54,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 4,
           "rule": "selectList",
-          "state": 59,
+          "state": 63,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 5,
-          "rule": "expressaoIn",
-          "state": 69,
+          "rule": "selectList",
+          "state": 67,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 6,
+          "rule": "expressaoIn",
+          "state": 77,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 7,
           "rule": "condition",
-          "state": 83,
+          "state": 98,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "not-disjoint",
           "probedLookahead": 1
         },
         {
-          "decision": 7,
+          "decision": 8,
           "rule": "condition",
-          "state": 91,
+          "state": 106,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "predicate",
           "probedLookahead": 1
         },
         {
-          "decision": 8,
+          "decision": 9,
           "rule": "condition",
-          "state": 93,
+          "state": 108,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "precedence",

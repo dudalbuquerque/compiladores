@@ -47,16 +47,58 @@ pub fn check_describe(describe: &Describe, database: &Database) -> TypeResult<()
 
 /// Query: a tabela existe, as colunas do SELECT existem e o WHERE é bem tipado.
 pub fn check_query(query: &Query, database: &Database) -> TypeResult<()> {
-    let table = lookup_table(&query.table, database)?;
+    let base_table = lookup_table(&query.table, database)?;
 
+    // Começa com as colunas da tabela base do FROM
+    let mut scope_columns = base_table.columns.clone();
+
+    // Delega a verificação e expansão das colunas dos joins para uma função separada
+    check_joins(&query.joins, database, &mut scope_columns, &query.table)?;
+
+    // Tabela unificada com todas as colunas visíveis na query (FROM + JOINs)
+    let scope_table = Table {
+        columns: scope_columns,
+        rows: vec![],
+    };
+
+    // Valida as colunas do SELECT
     if let SelectList::Columns(names) = &query.select {
         for name in names {
-            lookup_column(name, &query.table, table)?;
+            lookup_column(name, &query.table, &scope_table)?;
         }
     }
 
+    // Valida a condição do WHERE
     if let Some(condition) = &query.condition {
-        check_condition(condition, &query.table, table)?;
+        check_condition(condition, &query.table, &scope_table)?;
+    }
+
+    Ok(())
+}
+
+fn check_joins(
+    joins: &[crate::ast::Join],
+    database: &Database,
+    scope_columns: &mut Vec<crate::table::Column>,
+    base_table_name: &str,
+) -> TypeResult<()> {
+    for join in joins {
+        let join_table = lookup_table(&join.table, database)?;
+
+        // Aqui você poderá futuramente tratar regras específicas por tipo de Join 
+        // (ex: se for LEFT JOIN, as colunas da direita poderiam aceitar Null, etc.)
+
+        // Adiciona as colunas da tabela atual do join ao escopo acumulado
+        scope_columns.extend(join_table.columns.clone());
+
+        // Cria o escopo temporário acumulado até este join para validar a condição ON
+        let current_scope_table = Table {
+            columns: scope_columns.clone(),
+            rows: vec![],
+        };
+
+        // Valida a expressão do ON com base em tudo o que está visível até agora
+        check_expr(&join.condition, base_table_name, &current_scope_table)?;
     }
 
     Ok(())
