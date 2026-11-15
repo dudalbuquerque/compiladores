@@ -30,9 +30,15 @@ pub struct Query {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Join {
-    pub qualifier: String,
+    pub join_type: JoinType,
     pub table: String,
     pub condition: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum JoinType {
+    Inner,
+    Left,
 }
 
 #[derive(Debug, Clone, PartialEq)]

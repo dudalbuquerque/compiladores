@@ -5,8 +5,8 @@
     {
       "name": "miniSQLParser",
       "summary": {
-        "total": 10,
-        "ll1": 7,
+        "total": 11,
+        "ll1": 8,
         "fixed": 0,
         "adaptive": 3
       },
@@ -62,26 +62,33 @@
         },
         {
           "decision": 7,
+          "rule": "join",
+          "state": 83,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 8,
           "rule": "condition",
-          "state": 98,
+          "state": 99,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "not-disjoint",
           "probedLookahead": 1
         },
         {
-          "decision": 8,
+          "decision": 9,
           "rule": "condition",
-          "state": 106,
+          "state": 107,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "predicate",
           "probedLookahead": 1
         },
         {
-          "decision": 9,
+          "decision": 10,
           "rule": "condition",
-          "state": 108,
+          "state": 109,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "precedence",

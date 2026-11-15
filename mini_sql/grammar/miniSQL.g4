@@ -34,7 +34,7 @@ selectList : ID (',' ID)*
 expressaoIn : value IN LPAREN value (COMMA value)* RPAREN ;
 
 // joins encadeados (ex: JOIN a ON a.id = b.id JOIN c ON c.id = b.id)
-join : JOIN ID '.' ID ON expr ;
+join : (INNER | LEFT)? JOIN ID ON expr ;
 
 
 // Suporta condições encadeadas por AND / OR (ex: a = 1 AND b > 2)
@@ -71,6 +71,8 @@ SELECT : 'SELECT' | 'select';
 WHERE : 'WHERE' | 'where';
 FROM : 'FROM' | 'from';
 JOIN : 'JOIN' | 'join';
+INNER : 'INNER' | 'inner';
+LEFT : 'LEFT' | 'left';
 ON : 'ON' | 'on';
 LOAD : 'LOAD' | 'load';
 DESCRIBE : 'DESCRIBE' | 'describe' | 'DESC' | 'desc';

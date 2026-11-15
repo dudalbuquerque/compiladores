@@ -8,7 +8,7 @@
 // Célula vazia no CSV vira `Cell::Null` e nao quebra a consulta
 use std::cmp::Ordering;
 
-use crate::ast::{Condition, Describe, Expr, ExprIn, Load, Operator, Query, SelectList, Statement, Value};
+use crate::ast::{Condition, Describe, JoinType, Expr, ExprIn, Load, Operator, Query, SelectList, Statement, Value};
 use crate::csv_loader::{load_csv, table_name_from_path};
 use crate::table::{Column, DataType, Database, Table};
 
@@ -79,7 +79,7 @@ pub fn execute_query(query: &Query, database: &Database) -> ExecResult<Table> {
     // Aplica cada JOIN em sequência
     for join in &query.joins {
         let right_table = get_table(&join.table, database)?;
-        current_table = execute_join(&current_table, right_table, &join.condition)?;
+        current_table = execute_join(&current_table, right_table, &join.join_type, &join.condition)?;
     }
 
     // Projeção: índices das colunas pedidas no SELECT (sobre a tabela já com os joins aplicados)
@@ -112,7 +112,8 @@ pub fn execute_query(query: &Query, database: &Database) -> ExecResult<Table> {
 fn execute_join(
     left_table: &Table,
     right_table: &Table,
-    _join_cond: &Expr,
+    join_type: &JoinType,
+    join_cond: &Expr,
 ) -> ExecResult<Table> {
     // Combina as colunas das duas tabelas
     let mut columns = left_table.columns.clone();
@@ -124,19 +125,46 @@ fn execute_join(
         rows: Vec::new(),
     };
 
-    // CORREÇÃO AQUI: adicione o `mut`
     let mut rows = Vec::new();
+    match join_type {
+        JoinType::Inner => {
+            for left_row in &left_table.rows {
+                for right_row in &right_table.rows {
+                    let mut combined_row = left_row.clone();
+                    combined_row.extend(right_row.clone());
 
-    // Itera sobre todas as combinações de linhas (Produto Cartesiano)
-    for left_row in &left_table.rows {
-        for right_row in &right_table.rows {
-            let mut combined_row = left_row.clone();
-            combined_row.extend(right_row.clone());
+                    let matches = evaluate_expr(join_cond, &combined_row, &combined_table)? == Some(true);
+                    if matches {
+                        rows.push(combined_row);
+                    }
+                }
+            }
+        }
+        JoinType::Left => {
+            // Nova lógica para o LEFT JOIN
+            for left_row in &left_table.rows {
+                let mut matched = false;
 
-            // Avalia a condição do JOIN usando a tabela combinada
-            let matches = evaluate_expr(_join_cond, &combined_row, &combined_table)? == Some(true);
-            if matches {
-                rows.push(combined_row);
+                for right_row in &right_table.rows {
+                    let mut combined_row = left_row.clone();
+                    combined_row.extend(right_row.clone());
+
+                    let matches = evaluate_expr(join_cond, &combined_row, &combined_table)? == Some(true);
+                    if matches {
+                        rows.push(combined_row);
+                        matched = true;
+                    }
+                }
+
+                // Se a linha da esquerda NÃO casou com nenhuma da direita:
+                // Mantemos a linha da esquerda e preenchemos a direita com strings vazias (que viram Null)
+                if !matched {
+                    let mut combined_row = left_row.clone();
+                    for _ in &right_table.columns {
+                        combined_row.push("NULL".to_string());
+                    }
+                    rows.push(combined_row);
+                }
             }
         }
     }

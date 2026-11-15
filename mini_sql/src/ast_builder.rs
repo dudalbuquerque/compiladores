@@ -96,17 +96,23 @@ impl AstBuilder { //metodos associados
     }
 
     fn build_join(ctx: &JoinContext<'_>) -> Res<Join> {
-        // join : JOIN ID '.' ID ON expr ;
-        let ids: Vec<_> = ctx.id_tokens().collect();
-        if ids.len() < 2 {
-            return Err("esperado formato de join qualificado (tabela.coluna ou similar)".to_string());
-        }
+        let text = ctx.text().to_uppercase();
+        let join_type = if text.starts_with("LEFT") {
+            JoinType::Left
+        } else {
+            JoinType::Inner
+        };
+
+        // Desembrulha o Option<&str> retornado por text() com .expect()
+        let table = ctx.id_token().map_err(miss)?.symbol().text().expect("esperado texto no token ID").to_string();
         
-        let qualifier = ids[0].to_string();
-        let table = ids[1].to_string();
         let condition = Self::build_expr(&ctx.expr().map_err(miss)?)?;
 
-        Ok(Join { qualifier, table, condition })
+        Ok(Join { 
+            join_type, 
+            table, 
+            condition 
+        })
     }
 
     fn build_condition(ctx: &ConditionContext<'_>) -> Res<Condition> {
