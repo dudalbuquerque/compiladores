@@ -30,48 +30,55 @@ pub const LEFT: i32 = 6;
 pub const ON: i32 = 7;
 pub const LOAD: i32 = 8;
 pub const DESCRIBE: i32 = 9;
-pub const AND: i32 = 10;
-pub const OR: i32 = 11;
-pub const IN: i32 = 12;
-pub const NOT: i32 = 13;
-pub const BOOLEAN: i32 = 14;
-pub const ID: i32 = 15;
-pub const INT: i32 = 16;
-pub const FLOAT: i32 = 17;
-pub const STRING: i32 = 18;
-pub const EQUAL: i32 = 19;
-pub const NOT_EQUAL: i32 = 20;
-pub const LESS: i32 = 21;
-pub const LESS_EQUAL: i32 = 22;
-pub const GREATER: i32 = 23;
-pub const GREATER_EQUAL: i32 = 24;
-pub const COMMA: i32 = 25;
-pub const STAR: i32 = 26;
-pub const LPAREN: i32 = 27;
-pub const RPAREN: i32 = 28;
-pub const END: i32 = 29;
-pub const NEWLINE: i32 = 30;
-pub const COMMENT: i32 = 31;
-pub const ERROR_CHARACTER: i32 = 32;
+pub const WITH: i32 = 10;
+pub const AS: i32 = 11;
+pub const AND: i32 = 12;
+pub const OR: i32 = 13;
+pub const IN: i32 = 14;
+pub const NOT: i32 = 15;
+pub const BOOLEAN: i32 = 16;
+pub const ID: i32 = 17;
+pub const INT: i32 = 18;
+pub const FLOAT: i32 = 19;
+pub const STRING: i32 = 20;
+pub const EQUAL: i32 = 21;
+pub const NOT_EQUAL: i32 = 22;
+pub const LESS: i32 = 23;
+pub const LESS_EQUAL: i32 = 24;
+pub const GREATER: i32 = 25;
+pub const GREATER_EQUAL: i32 = 26;
+pub const COMMA: i32 = 27;
+pub const DOT: i32 = 28;
+pub const STAR: i32 = 29;
+pub const LPAREN: i32 = 30;
+pub const RPAREN: i32 = 31;
+pub const END: i32 = 32;
+pub const NEWLINE: i32 = 33;
+pub const COMMENT: i32 = 34;
+pub const ERROR_CHARACTER: i32 = 35;
 
 pub const RULE_PROGRAM: usize = 0;
 pub const RULE_STATEMENT: usize = 1;
 pub const RULE_LOAD: usize = 2;
 pub const RULE_DESCRIBE: usize = 3;
 pub const RULE_QUERY: usize = 4;
-pub const RULE_SELECT_LIST: usize = 5;
-pub const RULE_EXPRESSAO_IN: usize = 6;
-pub const RULE_JOIN: usize = 7;
-pub const RULE_CONDITION: usize = 8;
-pub const RULE_EXPR: usize = 9;
-pub const RULE_VALUE: usize = 10;
+pub const RULE_CTE_CLAUSE: usize = 5;
+pub const RULE_CTE: usize = 6;
+pub const RULE_QUERY_BODY: usize = 7;
+pub const RULE_SELECT_LIST: usize = 8;
+pub const RULE_COLUMN_REF: usize = 9;
+pub const RULE_EXPRESSAO_IN: usize = 10;
+pub const RULE_JOIN: usize = 11;
+pub const RULE_CONDITION: usize = 12;
+pub const RULE_EXPR: usize = 13;
+pub const RULE_VALUE: usize = 14;
 
 pub static METADATA: GrammarMetadata = GrammarMetadata::new(
     "miniSQLParser",
-    &["program", "statement", "load", "describe", "query", "selectList", "expressaoIn", "join", "condition", "expr", "value"],
-    &[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some("\'=\'"), None, Some("\'<\'"), Some("\'<=\'"), Some("\'>\'"), Some("\'>=\'"), Some("\',\'"), Some("\'*\'"), Some("\'(\'"), Some("\')\'"), Some("\';\'"), None, None, None],
-    &[None, Some("SELECT"), Some("WHERE"), Some("FROM"), Some("JOIN"), Some("INNER"), Some("LEFT"), Some("ON"), Some("LOAD"), Some("DESCRIBE"), Some("AND"), Some("OR"), Some("IN"), Some("NOT"), Some("BOOLEAN"), Some("ID"), Some("INT"), Some("FLOAT"), Some("STRING"), Some("EQUAL"), Some("NOT_EQUAL"), Some("LESS"), Some("LESS_EQUAL"), Some("GREATER"), Some("GREATER_EQUAL"), Some("COMMA"), Some("STAR"), Some("LPAREN"), Some("RPAREN"), Some("END"), Some("NEWLINE"), Some("COMMENT"), Some("ERROR_CHARACTER")],
-    &[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None],
+    &["program", "statement", "load", "describe", "query", "cteClause", "cte", "queryBody", "selectList", "columnRef", "expressaoIn", "join", "condition", "expr", "value"],
+    &[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some("\'=\'"), None, Some("\'<\'"), Some("\'<=\'"), Some("\'>\'"), Some("\'>=\'"), Some("\',\'"), Some("\'.\'"), Some("\'*\'"), Some("\'(\'"), Some("\')\'"), Some("\';\'"), None, None, None],
+    &[None, Some("SELECT"), Some("WHERE"), Some("FROM"), Some("JOIN"), Some("INNER"), Some("LEFT"), Some("ON"), Some("LOAD"), Some("DESCRIBE"), Some("WITH"), Some("AS"), Some("AND"), Some("OR"), Some("IN"), Some("NOT"), Some("BOOLEAN"), Some("ID"), Some("INT"), Some("FLOAT"), Some("STRING"), Some("EQUAL"), Some("NOT_EQUAL"), Some("LESS"), Some("LESS_EQUAL"), Some("GREATER"), Some("GREATER_EQUAL"), Some("COMMA"), Some("DOT"), Some("STAR"), Some("LPAREN"), Some("RPAREN"), Some("END"), Some("NEWLINE"), Some("COMMENT"), Some("ERROR_CHARACTER")],
+    &[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None],
     &[],
     &[],
     &[],
@@ -213,28 +220,40 @@ fn __context_kind(context: RuleNodeView<'_>) -> usize {
             7
         },
         8 => {
-            let operator = context.children().next().and_then(antlr4_runtime::Node::as_rule).is_some_and(|child| child.rule_index() == 8);
+            8
+        },
+        9 => {
+            9
+        },
+        10 => {
+            10
+        },
+        11 => {
+            11
+        },
+        12 => {
+            let operator = context.children().next().and_then(antlr4_runtime::Node::as_rule).is_some_and(|child| child.rule_index() == 12);
             if operator {
                 match context.context_alt_number() {
-                    1 => 10,
-                    2 => 11,
-                    _ => 8,
+                    1 => 14,
+                    2 => 15,
+                    _ => 12,
                 }
             } else {
                 match context.context_alt_number() {
-                    1 => 9,
-                    2 => 12,
-                    3 => 13,
-                    4 => 14,
-                    _ => 8,
+                    1 => 13,
+                    2 => 16,
+                    3 => 17,
+                    4 => 18,
+                    _ => 12,
                 }
             }
         },
-        9 => {
-            15
+        13 => {
+            19
         },
-        10 => {
-            16
+        14 => {
+            20
         },
         _ => usize::MAX,
     }
@@ -272,28 +291,40 @@ fn __active_context_kind(
             7
         },
         8 => {
-            let operator = context.child_nodes(storage, tokens).next().and_then(antlr4_runtime::Node::as_rule).is_some_and(|child| child.rule_index() == 8);
+            8
+        },
+        9 => {
+            9
+        },
+        10 => {
+            10
+        },
+        11 => {
+            11
+        },
+        12 => {
+            let operator = context.child_nodes(storage, tokens).next().and_then(antlr4_runtime::Node::as_rule).is_some_and(|child| child.rule_index() == 12);
             if operator {
                 match context.context_alt_number() {
-                    1 => 10,
-                    2 => 11,
-                    _ => 8,
+                    1 => 14,
+                    2 => 15,
+                    _ => 12,
                 }
             } else {
                 match context.context_alt_number() {
-                    1 => 9,
-                    2 => 12,
-                    3 => 13,
-                    4 => 14,
-                    _ => 8,
+                    1 => 13,
+                    2 => 16,
+                    3 => 17,
+                    4 => 18,
+                    _ => 12,
                 }
             }
         },
-        9 => {
-            15
+        13 => {
+            19
         },
-        10 => {
-            16
+        14 => {
+            20
         },
         _ => usize::MAX,
     }
@@ -400,8 +431,8 @@ antlr4_runtime::__antlr4_rust_context! {
 antlr4_runtime::__antlr4_rust_context_accessors! {
     LoadContext {
         token load_token: required(8, "LOAD"),
-        token string_token: required(18, "STRING"),
-        token end_token: required(29, "END"),
+        token string_token: required(20, "STRING"),
+        token end_token: required(32, "END"),
     }
 }
 
@@ -441,8 +472,8 @@ antlr4_runtime::__antlr4_rust_context! {
 antlr4_runtime::__antlr4_rust_context_accessors! {
     DescribeContext {
         token describe_token: required(9, "DESCRIBE"),
-        token id_token: required(15, "ID"),
-        token end_token: required(29, "END"),
+        token id_token: required(17, "ID"),
+        token end_token: required(32, "END"),
     }
 }
 
@@ -481,14 +512,9 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     QueryContext {
-        rule select_list: required(SelectListContext[5], "selectList"),
-        rule join_children: many(JoinContext[7]),
-        rule condition: optional(ConditionContext[8]),
-        token select_token: required(1, "SELECT"),
-        token where_token: optional(2),
-        token from_token: required(3, "FROM"),
-        token id_token: required(15, "ID"),
-        token end_token: required(29, "END"),
+        rule cte_clause: optional(CteClauseContext[5]),
+        rule query_body: required(QueryBodyContext[7], "queryBody"),
+        token end_token: required(32, "END"),
     }
 }
 
@@ -509,7 +535,7 @@ impl<'a> miniSQLValidatedVisitable<'a> for &QueryContext<'a, ValidatedTreeContex
 }
 
 antlr4_runtime::__antlr4_rust_context! {
-    pub struct SelectListContext {
+    pub struct CteClauseContext {
         rule_index: 5,
         context_kind: any,
         validated_downcast: branded,
@@ -526,10 +552,140 @@ antlr4_runtime::__antlr4_rust_context! {
 }
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
+    CteClauseContext {
+        rule cte_children: many(CteContext[6]),
+        token with_token: required(10, "WITH"),
+        token comma_tokens: many(27),
+    }
+}
+
+impl<'a> miniSQLVisitable<'a> for CteClauseContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &CteClauseContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for CteClauseContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &CteClauseContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+antlr4_runtime::__antlr4_rust_context! {
+    pub struct CteContext {
+        rule_index: 6,
+        context_kind: any,
+        validated_downcast: branded,
+        attributes: {
+        },
+        methods: {
+            rule_node: rule_node,
+            child_count: child_count,
+            direct_terminals: direct_terminals,
+            start: start,
+            text: text,
+        }
+    }
+}
+
+antlr4_runtime::__antlr4_rust_context_accessors! {
+    CteContext {
+        rule query_body: required(QueryBodyContext[7], "queryBody"),
+        token as_token: required(11, "AS"),
+        token id_tokens: many(17),
+        token comma_tokens: many(27),
+        token lparen_tokens: many(30),
+        token rparen_tokens: many(31),
+    }
+}
+
+impl<'a> miniSQLVisitable<'a> for CteContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &CteContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for CteContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &CteContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+antlr4_runtime::__antlr4_rust_context! {
+    pub struct QueryBodyContext {
+        rule_index: 7,
+        context_kind: any,
+        validated_downcast: branded,
+        attributes: {
+        },
+        methods: {
+            rule_node: rule_node,
+            child_count: child_count,
+            direct_terminals: direct_terminals,
+            start: start,
+            text: text,
+        }
+    }
+}
+
+antlr4_runtime::__antlr4_rust_context_accessors! {
+    QueryBodyContext {
+        rule select_list: required(SelectListContext[8], "selectList"),
+        rule join_children: many(JoinContext[11]),
+        rule condition: optional(ConditionContext[12]),
+        token select_token: required(1, "SELECT"),
+        token where_token: optional(2),
+        token from_token: required(3, "FROM"),
+        token id_token: required(17, "ID"),
+    }
+}
+
+impl<'a> miniSQLVisitable<'a> for QueryBodyContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &QueryBodyContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for QueryBodyContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &QueryBodyContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+antlr4_runtime::__antlr4_rust_context! {
+    pub struct SelectListContext {
+        rule_index: 8,
+        context_kind: any,
+        validated_downcast: branded,
+        attributes: {
+        },
+        methods: {
+            rule_node: rule_node,
+            child_count: child_count,
+            direct_terminals: direct_terminals,
+            start: start,
+            text: text,
+        }
+    }
+}
+
+antlr4_runtime::__antlr4_rust_context_accessors! {
     SelectListContext {
-        token id_tokens: many(15),
-        token comma_tokens: many(25),
-        token star_token: optional(26),
+        rule column_ref_children: many(ColumnRefContext[9]),
+        token comma_tokens: many(27),
+        token star_token: optional(29),
     }
 }
 
@@ -550,8 +706,48 @@ impl<'a> miniSQLValidatedVisitable<'a> for &SelectListContext<'a, ValidatedTreeC
 }
 
 antlr4_runtime::__antlr4_rust_context! {
+    pub struct ColumnRefContext {
+        rule_index: 9,
+        context_kind: any,
+        validated_downcast: branded,
+        attributes: {
+        },
+        methods: {
+            rule_node: rule_node,
+            child_count: child_count,
+            direct_terminals: direct_terminals,
+            start: start,
+            text: text,
+        }
+    }
+}
+
+antlr4_runtime::__antlr4_rust_context_accessors! {
+    ColumnRefContext {
+        token id_tokens: many(17),
+        token dot_token: optional(28),
+    }
+}
+
+impl<'a> miniSQLVisitable<'a> for ColumnRefContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLVisitable<'a> for &ColumnRefContext<'a> {
+    fn into_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for ColumnRefContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+impl<'a> miniSQLValidatedVisitable<'a> for &ColumnRefContext<'a, ValidatedTreeContext> {
+    fn into_validated_parse_tree_node(self) -> antlr4_runtime::Node<'a> { self.rule_node().node() }
+}
+
+antlr4_runtime::__antlr4_rust_context! {
     pub struct ExpressaoInContext {
-        rule_index: 6,
+        rule_index: 10,
         context_kind: any,
         validated_downcast: branded,
         attributes: {
@@ -568,11 +764,11 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     ExpressaoInContext {
-        rule value_children: many(ValueContext[10]),
-        token in_token: required(12, "IN"),
-        token comma_tokens: many(25),
-        token lparen_token: required(27, "LPAREN"),
-        token rparen_token: required(28, "RPAREN"),
+        rule value_children: many(ValueContext[14]),
+        token in_token: required(14, "IN"),
+        token comma_tokens: many(27),
+        token lparen_token: required(30, "LPAREN"),
+        token rparen_token: required(31, "RPAREN"),
     }
 }
 
@@ -594,7 +790,7 @@ impl<'a> miniSQLValidatedVisitable<'a> for &ExpressaoInContext<'a, ValidatedTree
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct JoinContext {
-        rule_index: 7,
+        rule_index: 11,
         context_kind: any,
         validated_downcast: branded,
         attributes: {
@@ -611,12 +807,12 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     JoinContext {
-        rule expr: required(ExprContext[9], "expr"),
+        rule expr: required(ExprContext[13], "expr"),
         token join_token: required(4, "JOIN"),
         token inner_token: optional(5),
         token left_token: optional(6),
         token on_token: required(7, "ON"),
-        token id_token: required(15, "ID"),
+        token id_token: required(17, "ID"),
     }
 }
 
@@ -638,7 +834,7 @@ impl<'a> miniSQLValidatedVisitable<'a> for &JoinContext<'a, ValidatedTreeContext
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ConditionContext {
-        rule_index: 8,
+        rule_index: 12,
         context_kind: any,
         validated_downcast: branded,
         attributes: {
@@ -655,14 +851,14 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     ConditionContext {
-        rule expressao_in: optional(ExpressaoInContext[6]),
-        rule condition_children: many(ConditionContext[8]),
-        rule expr: optional(ExprContext[9]),
-        token and_token: optional(10),
-        token or_token: optional(11),
-        token not_token: optional(13),
-        token lparen_token: optional(27),
-        token rparen_token: optional(28),
+        rule expressao_in: optional(ExpressaoInContext[10]),
+        rule condition_children: many(ConditionContext[12]),
+        rule expr: optional(ExprContext[13]),
+        token and_token: optional(12),
+        token or_token: optional(13),
+        token not_token: optional(15),
+        token lparen_token: optional(30),
+        token rparen_token: optional(31),
     }
 }
 
@@ -684,8 +880,8 @@ impl<'a> miniSQLValidatedVisitable<'a> for &ConditionContext<'a, ValidatedTreeCo
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct NotLabelContext {
-        rule_index: 8,
-        context_kind: exact(9),
+        rule_index: 12,
+        context_kind: exact(13),
         validated_downcast: branded,
         attributes: {
         },
@@ -701,9 +897,9 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     NotLabelContext {
-        rule condition: required(ConditionContext[8], "condition"),
-        token not_token: required(13, "NOT"),
-        label_rule inner: required(nth(0), ConditionContext[8], "inner"),
+        rule condition: required(ConditionContext[12], "condition"),
+        token not_token: required(15, "NOT"),
+        label_rule inner: required(nth(0), ConditionContext[12], "inner"),
     }
 }
 
@@ -725,8 +921,8 @@ impl<'a> miniSQLValidatedVisitable<'a> for &NotLabelContext<'a, ValidatedTreeCon
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct AndLabelContext {
-        rule_index: 8,
-        context_kind: exact(10),
+        rule_index: 12,
+        context_kind: exact(14),
         validated_downcast: branded,
         attributes: {
         },
@@ -742,10 +938,10 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     AndLabelContext {
-        rule condition_children: many(ConditionContext[8]),
-        token and_token: required(10, "AND"),
-        label_rule left: required(nth(0), ConditionContext[8], "left"),
-        label_rule right: required(nth(1), ConditionContext[8], "right"),
+        rule condition_children: many(ConditionContext[12]),
+        token and_token: required(12, "AND"),
+        label_rule left: required(nth(0), ConditionContext[12], "left"),
+        label_rule right: required(nth(1), ConditionContext[12], "right"),
     }
 }
 
@@ -767,8 +963,8 @@ impl<'a> miniSQLValidatedVisitable<'a> for &AndLabelContext<'a, ValidatedTreeCon
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct OrLabelContext {
-        rule_index: 8,
-        context_kind: exact(11),
+        rule_index: 12,
+        context_kind: exact(15),
         validated_downcast: branded,
         attributes: {
         },
@@ -784,10 +980,10 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     OrLabelContext {
-        rule condition_children: many(ConditionContext[8]),
-        token or_token: required(11, "OR"),
-        label_rule left: required(nth(0), ConditionContext[8], "left"),
-        label_rule right: required(nth(1), ConditionContext[8], "right"),
+        rule condition_children: many(ConditionContext[12]),
+        token or_token: required(13, "OR"),
+        label_rule left: required(nth(0), ConditionContext[12], "left"),
+        label_rule right: required(nth(1), ConditionContext[12], "right"),
     }
 }
 
@@ -809,8 +1005,8 @@ impl<'a> miniSQLValidatedVisitable<'a> for &OrLabelContext<'a, ValidatedTreeCont
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ParensLabelContext {
-        rule_index: 8,
-        context_kind: exact(12),
+        rule_index: 12,
+        context_kind: exact(16),
         validated_downcast: branded,
         attributes: {
         },
@@ -826,10 +1022,10 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     ParensLabelContext {
-        rule condition: required(ConditionContext[8], "condition"),
-        token lparen_token: required(27, "LPAREN"),
-        token rparen_token: required(28, "RPAREN"),
-        label_rule inner: required(nth(0), ConditionContext[8], "inner"),
+        rule condition: required(ConditionContext[12], "condition"),
+        token lparen_token: required(30, "LPAREN"),
+        token rparen_token: required(31, "RPAREN"),
+        label_rule inner: required(nth(0), ConditionContext[12], "inner"),
     }
 }
 
@@ -851,8 +1047,8 @@ impl<'a> miniSQLValidatedVisitable<'a> for &ParensLabelContext<'a, ValidatedTree
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ExprCondLabelContext {
-        rule_index: 8,
-        context_kind: exact(13),
+        rule_index: 12,
+        context_kind: exact(17),
         validated_downcast: branded,
         attributes: {
         },
@@ -868,7 +1064,7 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     ExprCondLabelContext {
-        rule expr: required(ExprContext[9], "expr"),
+        rule expr: required(ExprContext[13], "expr"),
     }
 }
 
@@ -890,8 +1086,8 @@ impl<'a> miniSQLValidatedVisitable<'a> for &ExprCondLabelContext<'a, ValidatedTr
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct InCondLabelContext {
-        rule_index: 8,
-        context_kind: exact(14),
+        rule_index: 12,
+        context_kind: exact(18),
         validated_downcast: branded,
         attributes: {
         },
@@ -907,7 +1103,7 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     InCondLabelContext {
-        rule expressao_in: required(ExpressaoInContext[6], "expressaoIn"),
+        rule expressao_in: required(ExpressaoInContext[10], "expressaoIn"),
     }
 }
 
@@ -929,7 +1125,7 @@ impl<'a> miniSQLValidatedVisitable<'a> for &InCondLabelContext<'a, ValidatedTree
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ExprContext {
-        rule_index: 9,
+        rule_index: 13,
         context_kind: any,
         validated_downcast: branded,
         attributes: {
@@ -946,16 +1142,16 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     ExprContext {
-        rule value_children: many(ValueContext[10]),
-        token equal_token: optional(19),
-        token not_equal_token: optional(20),
-        token less_token: optional(21),
-        token less_equal_token: optional(22),
-        token greater_token: optional(23),
-        token greater_equal_token: optional(24),
-        label_rule left: required(nth(0), ValueContext[10], "left"),
-        label_token op: required(nth(0), [19, 20, 21, 22, 23, 24], "op"),
-        label_rule right: required(nth(1), ValueContext[10], "right"),
+        rule value_children: many(ValueContext[14]),
+        token equal_token: optional(21),
+        token not_equal_token: optional(22),
+        token less_token: optional(23),
+        token less_equal_token: optional(24),
+        token greater_token: optional(25),
+        token greater_equal_token: optional(26),
+        label_rule left: required(nth(0), ValueContext[14], "left"),
+        label_token op: required(nth(0), [21, 22, 23, 24, 25, 26], "op"),
+        label_rule right: required(nth(1), ValueContext[14], "right"),
     }
 }
 
@@ -977,7 +1173,7 @@ impl<'a> miniSQLValidatedVisitable<'a> for &ExprContext<'a, ValidatedTreeContext
 
 antlr4_runtime::__antlr4_rust_context! {
     pub struct ValueContext {
-        rule_index: 10,
+        rule_index: 14,
         context_kind: any,
         validated_downcast: branded,
         attributes: {
@@ -994,11 +1190,11 @@ antlr4_runtime::__antlr4_rust_context! {
 
 antlr4_runtime::__antlr4_rust_context_accessors! {
     ValueContext {
-        token boolean_token: optional(14),
-        token id_token: optional(15),
-        token int_token: optional(16),
-        token float_token: optional(17),
-        token string_token: optional(18),
+        rule column_ref: optional(ColumnRefContext[9]),
+        token boolean_token: optional(16),
+        token int_token: optional(18),
+        token float_token: optional(19),
+        token string_token: optional(20),
     }
 }
 
@@ -1069,73 +1265,94 @@ pub fn validate_tree_structure(
                 },
                 4 => {
                     let context = QueryContext::__from_listener_node(context, None);
+        context.query_body()?;
+        context.end_token()?;
+                },
+                5 => {
+                    let context = CteClauseContext::__from_listener_node(context, None);
+        antlr4_runtime::require_min_count(context.cte_children().count(), 1, "CteClauseContext", "cte")?;
+        context.with_token()?;
+                },
+                6 => {
+                    let context = CteContext::__from_listener_node(context, None);
+        context.query_body()?;
+        context.as_token()?;
+        antlr4_runtime::require_min_count(context.id_tokens().count(), 1, "CteContext", "ID")?;
+        antlr4_runtime::require_min_count(context.lparen_tokens().count(), 1, "CteContext", "LPAREN")?;
+        antlr4_runtime::require_min_count(context.rparen_tokens().count(), 1, "CteContext", "RPAREN")?;
+                },
+                7 => {
+                    let context = QueryBodyContext::__from_listener_node(context, None);
         context.select_list()?;
         context.select_token()?;
         context.from_token()?;
         context.id_token()?;
-        context.end_token()?;
                 },
-                5 => {
+                8 => {
                 },
-                6 => {
+                9 => {
+                    let context = ColumnRefContext::__from_listener_node(context, None);
+        antlr4_runtime::require_min_count(context.id_tokens().count(), 1, "ColumnRefContext", "ID")?;
+                },
+                10 => {
                     let context = ExpressaoInContext::__from_listener_node(context, None);
         antlr4_runtime::require_min_count(context.value_children().count(), 2, "ExpressaoInContext", "value")?;
         context.in_token()?;
         context.lparen_token()?;
         context.rparen_token()?;
                 },
-                7 => {
+                11 => {
                     let context = JoinContext::__from_listener_node(context, None);
         context.expr()?;
         context.join_token()?;
         context.on_token()?;
         context.id_token()?;
                 },
-                8 => {
+                12 => {
                 },
-                9 => {
+                13 => {
                     let context = NotLabelContext::__from_listener_node(context, None);
         context.condition()?;
         context.not_token()?;
         context.inner()?;
                 },
-                10 => {
+                14 => {
                     let context = AndLabelContext::__from_listener_node(context, None);
         antlr4_runtime::require_min_count(context.condition_children().count(), 2, "AndLabelContext", "condition")?;
         context.and_token()?;
         context.left()?;
         context.right()?;
                 },
-                11 => {
+                15 => {
                     let context = OrLabelContext::__from_listener_node(context, None);
         antlr4_runtime::require_min_count(context.condition_children().count(), 2, "OrLabelContext", "condition")?;
         context.or_token()?;
         context.left()?;
         context.right()?;
                 },
-                12 => {
+                16 => {
                     let context = ParensLabelContext::__from_listener_node(context, None);
         context.condition()?;
         context.lparen_token()?;
         context.rparen_token()?;
         context.inner()?;
                 },
-                13 => {
+                17 => {
                     let context = ExprCondLabelContext::__from_listener_node(context, None);
         context.expr()?;
                 },
-                14 => {
+                18 => {
                     let context = InCondLabelContext::__from_listener_node(context, None);
         context.expressao_in()?;
                 },
-                15 => {
+                19 => {
                     let context = ExprContext::__from_listener_node(context, None);
         antlr4_runtime::require_min_count(context.value_children().count(), 2, "ExprContext", "value")?;
         context.left()?;
         context.op()?;
         context.right()?;
                 },
-                16 => {
+                20 => {
                 },
                     _ => {
                         return Err(miniSQLValidationError::UnknownRule {
@@ -1171,8 +1388,16 @@ pub trait miniSQLListener<E = std::convert::Infallible> {
     fn exit_describe(&mut self, _ctx: &DescribeContext) -> Result<(), E> { Ok(()) }
     fn enter_query(&mut self, _ctx: &QueryContext) -> Result<(), E> { Ok(()) }
     fn exit_query(&mut self, _ctx: &QueryContext) -> Result<(), E> { Ok(()) }
+    fn enter_cte_clause(&mut self, _ctx: &CteClauseContext) -> Result<(), E> { Ok(()) }
+    fn exit_cte_clause(&mut self, _ctx: &CteClauseContext) -> Result<(), E> { Ok(()) }
+    fn enter_cte(&mut self, _ctx: &CteContext) -> Result<(), E> { Ok(()) }
+    fn exit_cte(&mut self, _ctx: &CteContext) -> Result<(), E> { Ok(()) }
+    fn enter_query_body(&mut self, _ctx: &QueryBodyContext) -> Result<(), E> { Ok(()) }
+    fn exit_query_body(&mut self, _ctx: &QueryBodyContext) -> Result<(), E> { Ok(()) }
     fn enter_select_list(&mut self, _ctx: &SelectListContext) -> Result<(), E> { Ok(()) }
     fn exit_select_list(&mut self, _ctx: &SelectListContext) -> Result<(), E> { Ok(()) }
+    fn enter_column_ref(&mut self, _ctx: &ColumnRefContext) -> Result<(), E> { Ok(()) }
+    fn exit_column_ref(&mut self, _ctx: &ColumnRefContext) -> Result<(), E> { Ok(()) }
     fn enter_expressao_in(&mut self, _ctx: &ExpressaoInContext) -> Result<(), E> { Ok(()) }
     fn exit_expressao_in(&mut self, _ctx: &ExpressaoInContext) -> Result<(), E> { Ok(()) }
     fn enter_join(&mut self, _ctx: &JoinContext) -> Result<(), E> { Ok(()) }
@@ -1211,18 +1436,22 @@ antlr4_runtime::__antlr4_rust_generated_walk_callbacks! {
             2 => listener.enter_load(&LoadContext::__from_listener_node(context, invocation_states))?,
             3 => listener.enter_describe(&DescribeContext::__from_listener_node(context, invocation_states))?,
             4 => listener.enter_query(&QueryContext::__from_listener_node(context, invocation_states))?,
-            5 => listener.enter_select_list(&SelectListContext::__from_listener_node(context, invocation_states))?,
-            6 => listener.enter_expressao_in(&ExpressaoInContext::__from_listener_node(context, invocation_states))?,
-            7 => listener.enter_join(&JoinContext::__from_listener_node(context, invocation_states))?,
-            8 => listener.enter_condition(&ConditionContext::__from_listener_node(context, invocation_states))?,
-            9 => listener.enter_not_label(&NotLabelContext::__from_listener_node(context, invocation_states))?,
-            10 => listener.enter_and_label(&AndLabelContext::__from_listener_node(context, invocation_states))?,
-            11 => listener.enter_or_label(&OrLabelContext::__from_listener_node(context, invocation_states))?,
-            12 => listener.enter_parens_label(&ParensLabelContext::__from_listener_node(context, invocation_states))?,
-            13 => listener.enter_expr_cond_label(&ExprCondLabelContext::__from_listener_node(context, invocation_states))?,
-            14 => listener.enter_in_cond_label(&InCondLabelContext::__from_listener_node(context, invocation_states))?,
-            15 => listener.enter_expr(&ExprContext::__from_listener_node(context, invocation_states))?,
-            16 => listener.enter_value(&ValueContext::__from_listener_node(context, invocation_states))?,
+            5 => listener.enter_cte_clause(&CteClauseContext::__from_listener_node(context, invocation_states))?,
+            6 => listener.enter_cte(&CteContext::__from_listener_node(context, invocation_states))?,
+            7 => listener.enter_query_body(&QueryBodyContext::__from_listener_node(context, invocation_states))?,
+            8 => listener.enter_select_list(&SelectListContext::__from_listener_node(context, invocation_states))?,
+            9 => listener.enter_column_ref(&ColumnRefContext::__from_listener_node(context, invocation_states))?,
+            10 => listener.enter_expressao_in(&ExpressaoInContext::__from_listener_node(context, invocation_states))?,
+            11 => listener.enter_join(&JoinContext::__from_listener_node(context, invocation_states))?,
+            12 => listener.enter_condition(&ConditionContext::__from_listener_node(context, invocation_states))?,
+            13 => listener.enter_not_label(&NotLabelContext::__from_listener_node(context, invocation_states))?,
+            14 => listener.enter_and_label(&AndLabelContext::__from_listener_node(context, invocation_states))?,
+            15 => listener.enter_or_label(&OrLabelContext::__from_listener_node(context, invocation_states))?,
+            16 => listener.enter_parens_label(&ParensLabelContext::__from_listener_node(context, invocation_states))?,
+            17 => listener.enter_expr_cond_label(&ExprCondLabelContext::__from_listener_node(context, invocation_states))?,
+            18 => listener.enter_in_cond_label(&InCondLabelContext::__from_listener_node(context, invocation_states))?,
+            19 => listener.enter_expr(&ExprContext::__from_listener_node(context, invocation_states))?,
+            20 => listener.enter_value(&ValueContext::__from_listener_node(context, invocation_states))?,
             _ => {}
         }
         Ok(())
@@ -1234,18 +1463,22 @@ antlr4_runtime::__antlr4_rust_generated_walk_callbacks! {
             2 => listener.exit_load(&LoadContext::__from_listener_node(context, invocation_states))?,
             3 => listener.exit_describe(&DescribeContext::__from_listener_node(context, invocation_states))?,
             4 => listener.exit_query(&QueryContext::__from_listener_node(context, invocation_states))?,
-            5 => listener.exit_select_list(&SelectListContext::__from_listener_node(context, invocation_states))?,
-            6 => listener.exit_expressao_in(&ExpressaoInContext::__from_listener_node(context, invocation_states))?,
-            7 => listener.exit_join(&JoinContext::__from_listener_node(context, invocation_states))?,
-            8 => listener.exit_condition(&ConditionContext::__from_listener_node(context, invocation_states))?,
-            9 => listener.exit_not_label(&NotLabelContext::__from_listener_node(context, invocation_states))?,
-            10 => listener.exit_and_label(&AndLabelContext::__from_listener_node(context, invocation_states))?,
-            11 => listener.exit_or_label(&OrLabelContext::__from_listener_node(context, invocation_states))?,
-            12 => listener.exit_parens_label(&ParensLabelContext::__from_listener_node(context, invocation_states))?,
-            13 => listener.exit_expr_cond_label(&ExprCondLabelContext::__from_listener_node(context, invocation_states))?,
-            14 => listener.exit_in_cond_label(&InCondLabelContext::__from_listener_node(context, invocation_states))?,
-            15 => listener.exit_expr(&ExprContext::__from_listener_node(context, invocation_states))?,
-            16 => listener.exit_value(&ValueContext::__from_listener_node(context, invocation_states))?,
+            5 => listener.exit_cte_clause(&CteClauseContext::__from_listener_node(context, invocation_states))?,
+            6 => listener.exit_cte(&CteContext::__from_listener_node(context, invocation_states))?,
+            7 => listener.exit_query_body(&QueryBodyContext::__from_listener_node(context, invocation_states))?,
+            8 => listener.exit_select_list(&SelectListContext::__from_listener_node(context, invocation_states))?,
+            9 => listener.exit_column_ref(&ColumnRefContext::__from_listener_node(context, invocation_states))?,
+            10 => listener.exit_expressao_in(&ExpressaoInContext::__from_listener_node(context, invocation_states))?,
+            11 => listener.exit_join(&JoinContext::__from_listener_node(context, invocation_states))?,
+            12 => listener.exit_condition(&ConditionContext::__from_listener_node(context, invocation_states))?,
+            13 => listener.exit_not_label(&NotLabelContext::__from_listener_node(context, invocation_states))?,
+            14 => listener.exit_and_label(&AndLabelContext::__from_listener_node(context, invocation_states))?,
+            15 => listener.exit_or_label(&OrLabelContext::__from_listener_node(context, invocation_states))?,
+            16 => listener.exit_parens_label(&ParensLabelContext::__from_listener_node(context, invocation_states))?,
+            17 => listener.exit_expr_cond_label(&ExprCondLabelContext::__from_listener_node(context, invocation_states))?,
+            18 => listener.exit_in_cond_label(&InCondLabelContext::__from_listener_node(context, invocation_states))?,
+            19 => listener.exit_expr(&ExprContext::__from_listener_node(context, invocation_states))?,
+            20 => listener.exit_value(&ValueContext::__from_listener_node(context, invocation_states))?,
             _ => {}
         }
         listener.exit_every_rule(context)
@@ -1312,8 +1545,16 @@ pub trait miniSQLValidatedListener<E = std::convert::Infallible> {
     fn exit_describe(&mut self, _ctx: &DescribeContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn enter_query(&mut self, _ctx: &QueryContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn exit_query(&mut self, _ctx: &QueryContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn enter_cte_clause(&mut self, _ctx: &CteClauseContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn exit_cte_clause(&mut self, _ctx: &CteClauseContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn enter_cte(&mut self, _ctx: &CteContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn exit_cte(&mut self, _ctx: &CteContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn enter_query_body(&mut self, _ctx: &QueryBodyContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn exit_query_body(&mut self, _ctx: &QueryBodyContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn enter_select_list(&mut self, _ctx: &SelectListContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn exit_select_list(&mut self, _ctx: &SelectListContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn enter_column_ref(&mut self, _ctx: &ColumnRefContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
+    fn exit_column_ref(&mut self, _ctx: &ColumnRefContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn enter_expressao_in(&mut self, _ctx: &ExpressaoInContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn exit_expressao_in(&mut self, _ctx: &ExpressaoInContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
     fn enter_join(&mut self, _ctx: &JoinContext<ValidatedTreeContext>) -> Result<(), E> { Ok(()) }
@@ -1351,18 +1592,22 @@ antlr4_runtime::__antlr4_rust_generated_walk_callbacks! {
             2 => listener.enter_load(&LoadContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
             3 => listener.enter_describe(&DescribeContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
             4 => listener.enter_query(&QueryContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            5 => listener.enter_select_list(&SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            6 => listener.enter_expressao_in(&ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            7 => listener.enter_join(&JoinContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            8 => listener.enter_condition(&ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            9 => listener.enter_not_label(&NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            10 => listener.enter_and_label(&AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            11 => listener.enter_or_label(&OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            12 => listener.enter_parens_label(&ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            13 => listener.enter_expr_cond_label(&ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            14 => listener.enter_in_cond_label(&InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            15 => listener.enter_expr(&ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            16 => listener.enter_value(&ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            5 => listener.enter_cte_clause(&CteClauseContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            6 => listener.enter_cte(&CteContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            7 => listener.enter_query_body(&QueryBodyContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            8 => listener.enter_select_list(&SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            9 => listener.enter_column_ref(&ColumnRefContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            10 => listener.enter_expressao_in(&ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            11 => listener.enter_join(&JoinContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            12 => listener.enter_condition(&ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            13 => listener.enter_not_label(&NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            14 => listener.enter_and_label(&AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            15 => listener.enter_or_label(&OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            16 => listener.enter_parens_label(&ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            17 => listener.enter_expr_cond_label(&ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            18 => listener.enter_in_cond_label(&InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            19 => listener.enter_expr(&ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            20 => listener.enter_value(&ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
             _ => {}
         }
         Ok(())
@@ -1374,18 +1619,22 @@ antlr4_runtime::__antlr4_rust_generated_walk_callbacks! {
             2 => listener.exit_load(&LoadContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
             3 => listener.exit_describe(&DescribeContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
             4 => listener.exit_query(&QueryContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            5 => listener.exit_select_list(&SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            6 => listener.exit_expressao_in(&ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            7 => listener.exit_join(&JoinContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            8 => listener.exit_condition(&ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            9 => listener.exit_not_label(&NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            10 => listener.exit_and_label(&AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            11 => listener.exit_or_label(&OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            12 => listener.exit_parens_label(&ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            13 => listener.exit_expr_cond_label(&ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            14 => listener.exit_in_cond_label(&InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            15 => listener.exit_expr(&ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
-            16 => listener.exit_value(&ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            5 => listener.exit_cte_clause(&CteClauseContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            6 => listener.exit_cte(&CteContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            7 => listener.exit_query_body(&QueryBodyContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            8 => listener.exit_select_list(&SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            9 => listener.exit_column_ref(&ColumnRefContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            10 => listener.exit_expressao_in(&ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            11 => listener.exit_join(&JoinContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            12 => listener.exit_condition(&ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            13 => listener.exit_not_label(&NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            14 => listener.exit_and_label(&AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            15 => listener.exit_or_label(&OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            16 => listener.exit_parens_label(&ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            17 => listener.exit_expr_cond_label(&ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            18 => listener.exit_in_cond_label(&InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            19 => listener.exit_expr(&ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
+            20 => listener.exit_value(&ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, invocation_states))?,
             _ => {}
         }
         listener.exit_every_rule(ValidatedRuleNode::__new(context))
@@ -1494,7 +1743,19 @@ pub trait miniSQLVisitor: Sized {
     fn visit_query(&mut self, ctx: &QueryContext) -> Self::Result {
         self.visit_children(ctx)
     }
+    fn visit_cte_clause(&mut self, ctx: &CteClauseContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_cte(&mut self, ctx: &CteContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_query_body(&mut self, ctx: &QueryBodyContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
     fn visit_select_list(&mut self, ctx: &SelectListContext) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_column_ref(&mut self, ctx: &ColumnRefContext) -> Self::Result {
         self.visit_children(ctx)
     }
     fn visit_expressao_in(&mut self, ctx: &ExpressaoInContext) -> Self::Result {
@@ -1545,18 +1806,22 @@ impl<T: miniSQLVisitor> antlr4_runtime::ParseTreeVisitor for __VisitorBridge<'_,
             2 => miniSQLVisitor::visit_load(self.0, &LoadContext::__from_listener_node(context, None)),
             3 => miniSQLVisitor::visit_describe(self.0, &DescribeContext::__from_listener_node(context, None)),
             4 => miniSQLVisitor::visit_query(self.0, &QueryContext::__from_listener_node(context, None)),
-            5 => miniSQLVisitor::visit_select_list(self.0, &SelectListContext::__from_listener_node(context, None)),
-            6 => miniSQLVisitor::visit_expressao_in(self.0, &ExpressaoInContext::__from_listener_node(context, None)),
-            7 => miniSQLVisitor::visit_join(self.0, &JoinContext::__from_listener_node(context, None)),
-            8 => miniSQLVisitor::visit_condition(self.0, &ConditionContext::__from_listener_node(context, None)),
-            9 => miniSQLVisitor::visit_not_label(self.0, &NotLabelContext::__from_listener_node(context, None)),
-            10 => miniSQLVisitor::visit_and_label(self.0, &AndLabelContext::__from_listener_node(context, None)),
-            11 => miniSQLVisitor::visit_or_label(self.0, &OrLabelContext::__from_listener_node(context, None)),
-            12 => miniSQLVisitor::visit_parens_label(self.0, &ParensLabelContext::__from_listener_node(context, None)),
-            13 => miniSQLVisitor::visit_expr_cond_label(self.0, &ExprCondLabelContext::__from_listener_node(context, None)),
-            14 => miniSQLVisitor::visit_in_cond_label(self.0, &InCondLabelContext::__from_listener_node(context, None)),
-            15 => miniSQLVisitor::visit_expr(self.0, &ExprContext::__from_listener_node(context, None)),
-            16 => miniSQLVisitor::visit_value(self.0, &ValueContext::__from_listener_node(context, None)),
+            5 => miniSQLVisitor::visit_cte_clause(self.0, &CteClauseContext::__from_listener_node(context, None)),
+            6 => miniSQLVisitor::visit_cte(self.0, &CteContext::__from_listener_node(context, None)),
+            7 => miniSQLVisitor::visit_query_body(self.0, &QueryBodyContext::__from_listener_node(context, None)),
+            8 => miniSQLVisitor::visit_select_list(self.0, &SelectListContext::__from_listener_node(context, None)),
+            9 => miniSQLVisitor::visit_column_ref(self.0, &ColumnRefContext::__from_listener_node(context, None)),
+            10 => miniSQLVisitor::visit_expressao_in(self.0, &ExpressaoInContext::__from_listener_node(context, None)),
+            11 => miniSQLVisitor::visit_join(self.0, &JoinContext::__from_listener_node(context, None)),
+            12 => miniSQLVisitor::visit_condition(self.0, &ConditionContext::__from_listener_node(context, None)),
+            13 => miniSQLVisitor::visit_not_label(self.0, &NotLabelContext::__from_listener_node(context, None)),
+            14 => miniSQLVisitor::visit_and_label(self.0, &AndLabelContext::__from_listener_node(context, None)),
+            15 => miniSQLVisitor::visit_or_label(self.0, &OrLabelContext::__from_listener_node(context, None)),
+            16 => miniSQLVisitor::visit_parens_label(self.0, &ParensLabelContext::__from_listener_node(context, None)),
+            17 => miniSQLVisitor::visit_expr_cond_label(self.0, &ExprCondLabelContext::__from_listener_node(context, None)),
+            18 => miniSQLVisitor::visit_in_cond_label(self.0, &InCondLabelContext::__from_listener_node(context, None)),
+            19 => miniSQLVisitor::visit_expr(self.0, &ExprContext::__from_listener_node(context, None)),
+            20 => miniSQLVisitor::visit_value(self.0, &ValueContext::__from_listener_node(context, None)),
             _ => miniSQLVisitor::default_result(self.0),
         }
     }
@@ -1650,7 +1915,19 @@ pub trait miniSQLValidatedVisitor: Sized {
     fn visit_query(&mut self, ctx: &QueryContext<ValidatedTreeContext>) -> Self::Result {
         self.visit_children(ctx)
     }
+    fn visit_cte_clause(&mut self, ctx: &CteClauseContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_cte(&mut self, ctx: &CteContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_query_body(&mut self, ctx: &QueryBodyContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
     fn visit_select_list(&mut self, ctx: &SelectListContext<ValidatedTreeContext>) -> Self::Result {
+        self.visit_children(ctx)
+    }
+    fn visit_column_ref(&mut self, ctx: &ColumnRefContext<ValidatedTreeContext>) -> Self::Result {
         self.visit_children(ctx)
     }
     fn visit_expressao_in(&mut self, ctx: &ExpressaoInContext<ValidatedTreeContext>) -> Self::Result {
@@ -1703,18 +1980,22 @@ impl<T: miniSQLValidatedVisitor> antlr4_runtime::ParseTreeVisitor
             2 => miniSQLValidatedVisitor::visit_load(self.0, &LoadContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
             3 => miniSQLValidatedVisitor::visit_describe(self.0, &DescribeContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
             4 => miniSQLValidatedVisitor::visit_query(self.0, &QueryContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            5 => miniSQLValidatedVisitor::visit_select_list(self.0, &SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            6 => miniSQLValidatedVisitor::visit_expressao_in(self.0, &ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            7 => miniSQLValidatedVisitor::visit_join(self.0, &JoinContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            8 => miniSQLValidatedVisitor::visit_condition(self.0, &ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            9 => miniSQLValidatedVisitor::visit_not_label(self.0, &NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            10 => miniSQLValidatedVisitor::visit_and_label(self.0, &AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            11 => miniSQLValidatedVisitor::visit_or_label(self.0, &OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            12 => miniSQLValidatedVisitor::visit_parens_label(self.0, &ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            13 => miniSQLValidatedVisitor::visit_expr_cond_label(self.0, &ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            14 => miniSQLValidatedVisitor::visit_in_cond_label(self.0, &InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            15 => miniSQLValidatedVisitor::visit_expr(self.0, &ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
-            16 => miniSQLValidatedVisitor::visit_value(self.0, &ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            5 => miniSQLValidatedVisitor::visit_cte_clause(self.0, &CteClauseContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            6 => miniSQLValidatedVisitor::visit_cte(self.0, &CteContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            7 => miniSQLValidatedVisitor::visit_query_body(self.0, &QueryBodyContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            8 => miniSQLValidatedVisitor::visit_select_list(self.0, &SelectListContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            9 => miniSQLValidatedVisitor::visit_column_ref(self.0, &ColumnRefContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            10 => miniSQLValidatedVisitor::visit_expressao_in(self.0, &ExpressaoInContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            11 => miniSQLValidatedVisitor::visit_join(self.0, &JoinContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            12 => miniSQLValidatedVisitor::visit_condition(self.0, &ConditionContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            13 => miniSQLValidatedVisitor::visit_not_label(self.0, &NotLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            14 => miniSQLValidatedVisitor::visit_and_label(self.0, &AndLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            15 => miniSQLValidatedVisitor::visit_or_label(self.0, &OrLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            16 => miniSQLValidatedVisitor::visit_parens_label(self.0, &ParensLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            17 => miniSQLValidatedVisitor::visit_expr_cond_label(self.0, &ExprCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            18 => miniSQLValidatedVisitor::visit_in_cond_label(self.0, &InCondLabelContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            19 => miniSQLValidatedVisitor::visit_expr(self.0, &ExprContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
+            20 => miniSQLValidatedVisitor::visit_value(self.0, &ValueContext::<ValidatedTreeContext>::__from_validated_listener_node(context, None)),
             _ => miniSQLValidatedVisitor::default_result(self.0),
         }
     }
@@ -1754,7 +2035,7 @@ impl<T: miniSQLValidatedVisitor> antlr4_runtime::ParseTreeVisitor
 
 
 
-static PARSER_ATN_DATA: &[u32] = &[1346458702, 3, 16909060, 29, 32, 119, 139, 3, 3, 11, 11, 29, 833, 862, 695, 1557, 15, 1572, 6, 1590, 11, 1601, 11, 1612, 11, 1623, 6, 1578, 12, 2, 0, 8, 0, 1, 4294967295, 4294967295, 7, 0, 16, 1, 0, 4294967295, 4294967295, 2, 1, 8, 1, 1, 4294967295, 4294967295, 7, 1, 24, 2, 1, 4294967295, 4294967295, 2, 2, 8, 3, 1, 4294967295, 4294967295, 7, 2, 24, 4, 1, 4294967295, 4294967295, 2, 3, 8, 5, 1, 4294967295, 4294967295, 7, 3, 24, 6, 1, 4294967295, 4294967295, 2, 4, 8, 7, 1, 4294967295, 4294967295, 7, 4, 24, 8, 1, 4294967295, 4294967295, 2, 5, 8, 9, 1, 4294967295, 4294967295, 7, 5, 24, 10, 1, 4294967295, 4294967295, 2, 6, 8, 11, 1, 4294967295, 4294967295, 7, 6, 24, 12, 1, 4294967295, 4294967295, 2, 7, 8, 13, 1, 4294967295, 4294967295, 7, 7, 24, 14, 1, 4294967295, 4294967295, 2, 8, 12, 15, 1, 4294967295, 4294967295, 7, 8, 24, 16, 4, 4294967295, 4294967295, 2, 9, 8, 20, 1, 4294967295, 4294967295, 7, 9, 24, 21, 2, 4294967295, 4294967295, 2, 10, 8, 23, 1, 4294967295, 4294967295, 7, 10, 24, 24, 5, 4294967295, 4294967295, 1, 0, 8, 29, 1, 4294967295, 4294967295, 4, 0, 8, 30, 1, 24, 4294967295, 8, 0, 8, 31, 1, 4294967295, 4294967295, 11, 0, 8, 32, 2, 4294967295, 4294967295, 12, 0, 8, 34, 1, 4294967295, 25, 1, 0, 32, 35, 1, 4294967295, 4294967295, 1, 0, 8, 36, 1, 4294967295, 4294967295, 1, 1, 8, 37, 1, 4294967295, 4294967295, 1, 1, 8, 38, 1, 4294967295, 4294967295, 1, 1, 8, 39, 1, 4294967295, 4294967295, 3, 1, 8, 40, 3, 33, 4294967295, 8, 1, 8, 43, 1, 4294967295, 4294967295, 1, 2, 32, 44, 1, 4294967295, 4294967295, 1, 2, 32, 45, 1, 4294967295, 4294967295, 1, 2, 32, 46, 1, 4294967295, 4294967295, 1, 2, 8, 47, 1, 4294967295, 4294967295, 1, 3, 32, 48, 1, 4294967295, 4294967295, 1, 3, 32, 49, 1, 4294967295, 4294967295, 1, 3, 32, 50, 1, 4294967295, 4294967295, 1, 3, 8, 51, 1, 4294967295, 4294967295, 1, 4, 32, 52, 1, 4294967295, 4294967295, 1, 4, 32, 53, 1, 4294967295, 4294967295, 1, 4, 8, 54, 1, 4294967295, 4294967295, 5, 4, 8, 55, 1, 46, 4294967295, 8, 4, 8, 56, 1, 4294967295, 4294967295, 10, 4, 8, 57, 2, 4294967295, 4294967295, 12, 4, 8, 59, 1, 4294967295, 49, 9, 4, 8, 60, 1, 4294967295, 4294967295, 1, 4, 32, 61, 1, 4294967295, 4294967295, 1, 4, 8, 62, 1, 4294967295, 4294967295, 1, 4, 32, 63, 1, 4294967295, 4294967295, 1, 4, 8, 64, 1, 4294967295, 4294967295, 3, 4, 8, 65, 2, 55, 4294967295, 8, 4, 8, 67, 1, 4294967295, 4294967295, 1, 4, 32, 68, 1, 4294967295, 4294967295, 1, 4, 8, 69, 1, 4294967295, 4294967295, 1, 5, 32, 70, 1, 4294967295, 4294967295, 1, 5, 32, 71, 1, 4294967295, 4294967295, 1, 5, 32, 72, 1, 4294967295, 4294967295, 5, 5, 8, 73, 1, 62, 4294967295, 8, 5, 8, 74, 1, 4294967295, 4294967295, 10, 5, 8, 75, 2, 4294967295, 4294967295, 12, 5, 8, 77, 1, 4294967295, 65, 9, 5, 8, 78, 1, 4294967295, 4294967295, 1, 5, 32, 79, 1, 4294967295, 4294967295, 3, 5, 8, 80, 2, 68, 4294967295, 8, 5, 8, 82, 1, 4294967295, 4294967295, 1, 6, 8, 83, 1, 4294967295, 4294967295, 1, 6, 32, 84, 1, 4294967295, 4294967295, 1, 6, 32, 85, 1, 4294967295, 4294967295, 1, 6, 8, 86, 1, 4294967295, 4294967295, 1, 6, 32, 87, 1, 4294967295, 4294967295, 1, 6, 8, 88, 1, 4294967295, 4294967295, 5, 6, 8, 89, 1, 76, 4294967295, 8, 6, 8, 90, 1, 4294967295, 4294967295, 10, 6, 8, 91, 2, 4294967295, 4294967295, 12, 6, 8, 93, 1, 4294967295, 79, 9, 6, 8, 94, 1, 4294967295, 4294967295, 1, 6, 32, 95, 1, 4294967295, 4294967295, 1, 6, 8, 96, 1, 4294967295, 4294967295, 1, 7, 32, 97, 1, 4294967295, 4294967295, 3, 7, 8, 98, 2, 84, 4294967295, 8, 7, 8, 100, 1, 4294967295, 4294967295, 1, 7, 32, 101, 1, 4294967295, 4294967295, 1, 7, 32, 102, 1, 4294967295, 4294967295, 1, 7, 32, 103, 1, 4294967295, 4294967295, 1, 7, 8, 104, 1, 4294967295, 4294967295, 1, 7, 8, 105, 1, 4294967295, 4294967295, 1, 8, 72, 106, 1, 4294967295, 4294967295, 1, 8, 32, 107, 1, 4294967295, 4294967295, 1, 8, 8, 108, 1, 4294967295, 4294967295, 1, 8, 32, 109, 1, 4294967295, 4294967295, 1, 8, 8, 110, 1, 4294967295, 4294967295, 1, 8, 32, 111, 1, 4294967295, 4294967295, 1, 8, 8, 112, 1, 4294967295, 4294967295, 1, 8, 8, 113, 1, 4294967295, 4294967295, 1, 8, 8, 114, 1, 4294967295, 4294967295, 3, 8, 8, 115, 4, 100, 4294967295, 8, 8, 8, 119, 1, 4294967295, 4294967295, 1, 8, 72, 120, 1, 4294967295, 4294967295, 1, 8, 32, 121, 1, 4294967295, 4294967295, 1, 8, 8, 122, 1, 4294967295, 4294967295, 1, 8, 72, 123, 1, 4294967295, 4294967295, 1, 8, 32, 124, 1, 4294967295, 4294967295, 1, 8, 8, 125, 1, 4294967295, 4294967295, 5, 8, 8, 126, 2, 108, 4294967295, 8, 8, 8, 128, 1, 4294967295, 4294967295, 10, 8, 10, 129, 2, 4294967295, 4294967295, 12, 8, 8, 131, 1, 4294967295, 111, 9, 8, 8, 132, 1, 4294967295, 4294967295, 1, 9, 8, 133, 1, 4294967295, 4294967295, 1, 9, 32, 134, 1, 4294967295, 4294967295, 1, 9, 8, 135, 1, 4294967295, 4294967295, 1, 9, 8, 136, 1, 4294967295, 4294967295, 1, 10, 32, 137, 1, 4294967295, 4294967295, 1, 10, 8, 138, 1, 4294967295, 4294967295, 1, 10, 0, 139, 0, 4294967295, 4294967295, 1, 23, 0, 0, 0, 1, 32, 0, 0, 0, 1, 24, 0, 0, 0, 1, 34, 0, 0, 0, 1, 33, 0, 0, 0, 1, 38, 0, 0, 0, 1, 33, 0, 0, 0, 1, 42, 0, 0, 0, 1, 33, 0, 0, 0, 1, 67, 0, 0, 0, 1, 54, 0, 0, 0, 1, 69, 0, 0, 0, 1, 100, 0, 0, 0, 1, 83, 0, 0, 0, 1, 46, 0, 0, 0, 1, 99, 0, 0, 0, 1, 55, 0, 0, 0, 1, 100, 0, 0, 0, 1, 95, 0, 0, 0, 1, 108, 0, 0, 0, 1, 112, 0, 0, 0, 1, 89, 0, 0, 0, 1, 100, 0, 0, 0, 1, 116, 0, 0, 0, 1, 70, 0, 0, 0, 1, 77, 0, 0, 0, 1, 76, 0, 0, 0, 1, 113, 0, 0, 0, 1, 115, 0, 0, 0, 3, 2, 1, 24, 0, 1, 22, 0, 0, 0, 1, 25, 0, 0, 0, 1, 23, 0, 0, 0, 1, 26, 0, 0, 0, 1, 27, 0, 0, 0, 5, 28, 4294967295, 0, 0, 1, 1, 0, 0, 0, 259, 8, 4, 33, 0, 259, 4, 2, 33, 0, 259, 6, 3, 33, 0, 1, 29, 0, 0, 0, 1, 30, 0, 0, 0, 1, 31, 0, 0, 0, 1, 3, 0, 0, 0, 5, 35, 8, 0, 0, 5, 36, 18, 0, 0, 5, 37, 29, 0, 0, 1, 5, 0, 0, 0, 5, 39, 9, 0, 0, 5, 40, 15, 0, 0, 5, 41, 29, 0, 0, 1, 7, 0, 0, 0, 5, 43, 3, 0, 0, 5, 47, 15, 0, 0, 3, 14, 7, 46, 0, 1, 44, 0, 0, 0, 1, 49, 0, 0, 0, 1, 45, 0, 0, 0, 1, 48, 0, 0, 0, 1, 50, 0, 0, 0, 1, 47, 0, 0, 0, 5, 51, 1, 0, 0, 3, 10, 5, 54, 0, 5, 53, 2, 0, 0, 3, 16, 8, 55, 0, 1, 52, 0, 0, 0, 1, 55, 0, 0, 0, 1, 56, 0, 0, 0, 5, 57, 29, 0, 0, 1, 9, 0, 0, 0, 5, 63, 15, 0, 0, 5, 60, 25, 0, 0, 5, 62, 15, 0, 0, 1, 59, 0, 0, 0, 1, 65, 0, 0, 0, 1, 61, 0, 0, 0, 1, 64, 0, 0, 0, 1, 68, 0, 0, 0, 1, 63, 0, 0, 0, 5, 68, 26, 0, 0, 1, 58, 0, 0, 0, 1, 66, 0, 0, 0, 1, 11, 0, 0, 0, 3, 20, 10, 70, 0, 5, 71, 12, 0, 0, 5, 72, 27, 0, 0, 3, 20, 10, 77, 0, 5, 74, 25, 0, 0, 3, 20, 10, 76, 0, 1, 73, 0, 0, 0, 1, 79, 0, 0, 0, 1, 75, 0, 0, 0, 1, 78, 0, 0, 0, 1, 80, 0, 0, 0, 1, 77, 0, 0, 0, 5, 81, 28, 0, 0, 1, 13, 0, 0, 0, 7, 84, 0, 0, 0, 1, 82, 0, 0, 0, 1, 84, 0, 0, 0, 1, 85, 0, 0, 0, 5, 86, 4, 0, 0, 5, 87, 15, 0, 0, 5, 88, 7, 0, 0, 259, 18, 9, 89, 0, 1, 15, 0, 0, 0, 6, 91, 8, 4294967295, 0, 5, 92, 13, 0, 0, 3, 16, 8, 100, 6, 5, 94, 27, 0, 0, 3, 16, 8, 95, 0, 5, 96, 28, 0, 0, 1, 100, 0, 0, 0, 3, 18, 9, 100, 0, 3, 12, 6, 100, 0, 1, 90, 0, 0, 0, 1, 93, 0, 0, 0, 1, 97, 0, 0, 0, 1, 98, 0, 0, 0, 1, 109, 0, 0, 0, 10, 102, 5, 0, 0, 5, 103, 10, 0, 0, 3, 16, 8, 108, 6, 10, 105, 4, 0, 0, 5, 106, 11, 0, 0, 3, 16, 8, 108, 5, 1, 101, 0, 0, 0, 1, 104, 0, 0, 0, 1, 111, 0, 0, 0, 1, 107, 0, 0, 0, 1, 110, 0, 0, 0, 1, 17, 0, 0, 0, 1, 109, 0, 0, 0, 3, 20, 10, 113, 0, 7, 114, 1, 0, 0, 259, 20, 10, 115, 0, 1, 19, 0, 0, 0, 7, 117, 2, 0, 0, 1, 21, 0, 0, 0, 0, 1, 1, 0, 2, 1, 1, 1, 2, 2, 2, 1, 1, 4, 2, 5, 6, 19, 24, 14, 18, 96, 0, 0, 0, 33030144, 0, 0, 0, 507904, 0, 0, 0, 25, 32, 47, 54, 63, 67, 77, 83, 99, 107, 109, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21];
+static PARSER_ATN_DATA: &[u32] = &[1346458702, 3, 16909060, 29, 35, 168, 201, 2, 2, 17, 15, 29, 1176, 1205, 1005, 2210, 10, 2220, 4, 2232, 17, 2249, 15, 2264, 15, 2279, 4, 2224, 8, 2, 0, 8, 0, 1, 4294967295, 4294967295, 7, 0, 16, 1, 0, 4294967295, 4294967295, 2, 1, 8, 1, 1, 4294967295, 4294967295, 7, 1, 24, 2, 1, 4294967295, 4294967295, 2, 2, 8, 3, 1, 4294967295, 4294967295, 7, 2, 24, 4, 1, 4294967295, 4294967295, 2, 3, 8, 5, 1, 4294967295, 4294967295, 7, 3, 24, 6, 1, 4294967295, 4294967295, 2, 4, 8, 7, 1, 4294967295, 4294967295, 7, 4, 24, 8, 1, 4294967295, 4294967295, 2, 5, 8, 9, 1, 4294967295, 4294967295, 7, 5, 24, 10, 1, 4294967295, 4294967295, 2, 6, 8, 11, 1, 4294967295, 4294967295, 7, 6, 24, 12, 2, 4294967295, 4294967295, 2, 7, 8, 14, 1, 4294967295, 4294967295, 7, 7, 24, 15, 2, 4294967295, 4294967295, 2, 8, 8, 17, 1, 4294967295, 4294967295, 7, 8, 24, 18, 1, 4294967295, 4294967295, 2, 9, 8, 19, 1, 4294967295, 4294967295, 7, 9, 24, 20, 3, 4294967295, 4294967295, 2, 10, 8, 23, 1, 4294967295, 4294967295, 7, 10, 24, 24, 1, 4294967295, 4294967295, 2, 11, 8, 25, 1, 4294967295, 4294967295, 7, 11, 24, 26, 1, 4294967295, 4294967295, 2, 12, 12, 27, 1, 4294967295, 4294967295, 7, 12, 24, 28, 4, 4294967295, 4294967295, 2, 13, 8, 32, 1, 4294967295, 4294967295, 7, 13, 24, 33, 2, 4294967295, 4294967295, 2, 14, 8, 35, 1, 4294967295, 4294967295, 7, 14, 24, 36, 5, 4294967295, 4294967295, 1, 0, 8, 41, 1, 4294967295, 4294967295, 4, 0, 8, 42, 1, 32, 4294967295, 8, 0, 8, 43, 1, 4294967295, 4294967295, 11, 0, 8, 44, 2, 4294967295, 4294967295, 12, 0, 8, 46, 1, 4294967295, 33, 1, 0, 32, 47, 1, 4294967295, 4294967295, 1, 0, 8, 48, 1, 4294967295, 4294967295, 1, 1, 8, 49, 1, 4294967295, 4294967295, 1, 1, 8, 50, 1, 4294967295, 4294967295, 1, 1, 8, 51, 1, 4294967295, 4294967295, 3, 1, 8, 52, 3, 41, 4294967295, 8, 1, 8, 55, 1, 4294967295, 4294967295, 1, 2, 32, 56, 1, 4294967295, 4294967295, 1, 2, 32, 57, 1, 4294967295, 4294967295, 1, 2, 32, 58, 1, 4294967295, 4294967295, 1, 2, 8, 59, 1, 4294967295, 4294967295, 1, 3, 32, 60, 1, 4294967295, 4294967295, 1, 3, 32, 61, 1, 4294967295, 4294967295, 1, 3, 32, 62, 1, 4294967295, 4294967295, 1, 3, 8, 63, 1, 4294967295, 4294967295, 1, 4, 8, 64, 1, 4294967295, 4294967295, 3, 4, 8, 65, 2, 52, 4294967295, 8, 4, 8, 67, 1, 4294967295, 4294967295, 1, 4, 8, 68, 1, 4294967295, 4294967295, 1, 4, 32, 69, 1, 4294967295, 4294967295, 1, 4, 8, 70, 1, 4294967295, 4294967295, 1, 5, 32, 71, 1, 4294967295, 4294967295, 1, 5, 8, 72, 1, 4294967295, 4294967295, 1, 5, 32, 73, 1, 4294967295, 4294967295, 1, 5, 8, 74, 1, 4294967295, 4294967295, 5, 5, 8, 75, 1, 61, 4294967295, 8, 5, 8, 76, 1, 4294967295, 4294967295, 10, 5, 8, 77, 2, 4294967295, 4294967295, 12, 5, 8, 79, 1, 4294967295, 64, 9, 5, 8, 80, 1, 4294967295, 4294967295, 1, 6, 32, 81, 1, 4294967295, 4294967295, 1, 6, 32, 82, 1, 4294967295, 4294967295, 1, 6, 32, 83, 1, 4294967295, 4294967295, 1, 6, 32, 84, 1, 4294967295, 4294967295, 1, 6, 32, 85, 1, 4294967295, 4294967295, 5, 6, 8, 86, 1, 71, 4294967295, 8, 6, 8, 87, 1, 4294967295, 4294967295, 10, 6, 8, 88, 2, 4294967295, 4294967295, 12, 6, 8, 90, 1, 4294967295, 74, 9, 6, 8, 91, 1, 4294967295, 4294967295, 1, 6, 32, 92, 1, 4294967295, 4294967295, 3, 6, 8, 93, 2, 77, 4294967295, 8, 6, 8, 95, 1, 4294967295, 4294967295, 1, 6, 32, 96, 1, 4294967295, 4294967295, 1, 6, 32, 97, 1, 4294967295, 4294967295, 1, 6, 8, 98, 1, 4294967295, 4294967295, 1, 6, 32, 99, 1, 4294967295, 4294967295, 1, 6, 8, 100, 1, 4294967295, 4294967295, 1, 7, 32, 101, 1, 4294967295, 4294967295, 1, 7, 32, 102, 1, 4294967295, 4294967295, 1, 7, 8, 103, 1, 4294967295, 4294967295, 5, 7, 8, 104, 1, 87, 4294967295, 8, 7, 8, 105, 1, 4294967295, 4294967295, 10, 7, 8, 106, 2, 4294967295, 4294967295, 12, 7, 8, 108, 1, 4294967295, 90, 9, 7, 8, 109, 1, 4294967295, 4294967295, 1, 7, 32, 110, 1, 4294967295, 4294967295, 1, 7, 8, 111, 1, 4294967295, 4294967295, 1, 7, 32, 112, 1, 4294967295, 4294967295, 1, 7, 8, 113, 1, 4294967295, 4294967295, 3, 7, 8, 114, 2, 96, 4294967295, 8, 7, 8, 116, 1, 4294967295, 4294967295, 1, 8, 8, 117, 1, 4294967295, 4294967295, 1, 8, 32, 118, 1, 4294967295, 4294967295, 1, 8, 8, 119, 1, 4294967295, 4294967295, 5, 8, 8, 120, 1, 101, 4294967295, 8, 8, 8, 121, 1, 4294967295, 4294967295, 10, 8, 8, 122, 2, 4294967295, 4294967295, 12, 8, 8, 124, 1, 4294967295, 104, 9, 8, 8, 125, 1, 4294967295, 4294967295, 1, 8, 32, 126, 1, 4294967295, 4294967295, 3, 8, 8, 127, 2, 107, 4294967295, 8, 8, 8, 129, 1, 4294967295, 4294967295, 1, 9, 32, 130, 1, 4294967295, 4294967295, 1, 9, 32, 131, 1, 4294967295, 4294967295, 1, 9, 32, 132, 1, 4294967295, 4294967295, 3, 9, 8, 133, 2, 112, 4294967295, 8, 9, 8, 135, 1, 4294967295, 4294967295, 1, 10, 8, 136, 1, 4294967295, 4294967295, 1, 10, 32, 137, 1, 4294967295, 4294967295, 1, 10, 32, 138, 1, 4294967295, 4294967295, 1, 10, 8, 139, 1, 4294967295, 4294967295, 1, 10, 32, 140, 1, 4294967295, 4294967295, 1, 10, 8, 141, 1, 4294967295, 4294967295, 5, 10, 8, 142, 1, 120, 4294967295, 8, 10, 8, 143, 1, 4294967295, 4294967295, 10, 10, 8, 144, 2, 4294967295, 4294967295, 12, 10, 8, 146, 1, 4294967295, 123, 9, 10, 8, 147, 1, 4294967295, 4294967295, 1, 10, 32, 148, 1, 4294967295, 4294967295, 1, 10, 8, 149, 1, 4294967295, 4294967295, 1, 11, 32, 150, 1, 4294967295, 4294967295, 3, 11, 8, 151, 2, 128, 4294967295, 8, 11, 8, 153, 1, 4294967295, 4294967295, 1, 11, 32, 154, 1, 4294967295, 4294967295, 1, 11, 32, 155, 1, 4294967295, 4294967295, 1, 11, 32, 156, 1, 4294967295, 4294967295, 1, 11, 8, 157, 1, 4294967295, 4294967295, 1, 11, 8, 158, 1, 4294967295, 4294967295, 1, 12, 72, 159, 1, 4294967295, 4294967295, 1, 12, 32, 160, 1, 4294967295, 4294967295, 1, 12, 8, 161, 1, 4294967295, 4294967295, 1, 12, 32, 162, 1, 4294967295, 4294967295, 1, 12, 8, 163, 1, 4294967295, 4294967295, 1, 12, 32, 164, 1, 4294967295, 4294967295, 1, 12, 8, 165, 1, 4294967295, 4294967295, 1, 12, 8, 166, 1, 4294967295, 4294967295, 1, 12, 8, 167, 1, 4294967295, 4294967295, 3, 12, 8, 168, 4, 144, 4294967295, 8, 12, 8, 172, 1, 4294967295, 4294967295, 1, 12, 72, 173, 1, 4294967295, 4294967295, 1, 12, 32, 174, 1, 4294967295, 4294967295, 1, 12, 8, 175, 1, 4294967295, 4294967295, 1, 12, 72, 176, 1, 4294967295, 4294967295, 1, 12, 32, 177, 1, 4294967295, 4294967295, 1, 12, 8, 178, 1, 4294967295, 4294967295, 5, 12, 8, 179, 2, 152, 4294967295, 8, 12, 8, 181, 1, 4294967295, 4294967295, 10, 12, 10, 182, 2, 4294967295, 4294967295, 12, 12, 8, 184, 1, 4294967295, 155, 9, 12, 8, 185, 1, 4294967295, 4294967295, 1, 13, 8, 186, 1, 4294967295, 4294967295, 1, 13, 32, 187, 1, 4294967295, 4294967295, 1, 13, 8, 188, 1, 4294967295, 4294967295, 1, 13, 8, 189, 1, 4294967295, 4294967295, 1, 14, 8, 190, 1, 4294967295, 4294967295, 1, 14, 32, 191, 1, 4294967295, 4294967295, 1, 14, 32, 192, 1, 4294967295, 4294967295, 1, 14, 32, 193, 1, 4294967295, 4294967295, 1, 14, 32, 194, 1, 4294967295, 4294967295, 3, 14, 8, 195, 5, 166, 4294967295, 8, 14, 8, 200, 1, 4294967295, 4294967295, 1, 14, 0, 201, 0, 4294967295, 4294967295, 1, 31, 0, 0, 0, 1, 40, 0, 0, 0, 1, 32, 0, 0, 0, 1, 42, 0, 0, 0, 1, 41, 0, 0, 0, 1, 46, 0, 0, 0, 1, 41, 0, 0, 0, 1, 51, 0, 0, 0, 1, 41, 0, 0, 0, 1, 56, 0, 0, 0, 1, 52, 0, 0, 0, 1, 65, 0, 0, 0, 1, 62, 0, 0, 0, 1, 61, 0, 0, 0, 1, 83, 0, 0, 0, 1, 54, 0, 0, 0, 1, 81, 0, 0, 0, 1, 106, 0, 0, 0, 1, 95, 0, 0, 0, 1, 108, 0, 0, 0, 1, 102, 0, 0, 0, 1, 101, 0, 0, 0, 1, 166, 0, 0, 0, 1, 113, 0, 0, 0, 1, 144, 0, 0, 0, 1, 127, 0, 0, 0, 1, 87, 0, 0, 0, 1, 143, 0, 0, 0, 1, 96, 0, 0, 0, 1, 144, 0, 0, 0, 1, 139, 0, 0, 0, 1, 152, 0, 0, 0, 1, 156, 0, 0, 0, 1, 133, 0, 0, 0, 1, 144, 0, 0, 0, 1, 165, 0, 0, 0, 1, 114, 0, 0, 0, 1, 121, 0, 0, 0, 1, 120, 0, 0, 0, 1, 157, 0, 0, 0, 1, 159, 0, 0, 0, 3, 2, 1, 32, 0, 1, 30, 0, 0, 0, 1, 33, 0, 0, 0, 1, 31, 0, 0, 0, 1, 34, 0, 0, 0, 1, 35, 0, 0, 0, 5, 36, 4294967295, 0, 0, 1, 1, 0, 0, 0, 259, 8, 4, 41, 0, 259, 4, 2, 41, 0, 259, 6, 3, 41, 0, 1, 37, 0, 0, 0, 1, 38, 0, 0, 0, 1, 39, 0, 0, 0, 1, 3, 0, 0, 0, 5, 43, 8, 0, 0, 5, 44, 20, 0, 0, 5, 45, 32, 0, 0, 1, 5, 0, 0, 0, 5, 47, 9, 0, 0, 5, 48, 17, 0, 0, 5, 49, 32, 0, 0, 1, 7, 0, 0, 0, 3, 10, 5, 52, 0, 1, 50, 0, 0, 0, 1, 52, 0, 0, 0, 1, 53, 0, 0, 0, 3, 14, 7, 54, 0, 5, 55, 32, 0, 0, 1, 9, 0, 0, 0, 5, 57, 10, 0, 0, 3, 12, 6, 62, 0, 5, 59, 27, 0, 0, 3, 12, 6, 61, 0, 1, 58, 0, 0, 0, 1, 64, 0, 0, 0, 1, 60, 0, 0, 0, 1, 63, 0, 0, 0, 1, 11, 0, 0, 0, 1, 62, 0, 0, 0, 5, 76, 17, 0, 0, 5, 67, 30, 0, 0, 5, 72, 17, 0, 0, 5, 69, 27, 0, 0, 5, 71, 17, 0, 0, 1, 68, 0, 0, 0, 1, 74, 0, 0, 0, 1, 70, 0, 0, 0, 1, 73, 0, 0, 0, 1, 75, 0, 0, 0, 1, 72, 0, 0, 0, 5, 77, 31, 0, 0, 1, 66, 0, 0, 0, 1, 77, 0, 0, 0, 1, 78, 0, 0, 0, 5, 79, 11, 0, 0, 5, 80, 30, 0, 0, 3, 14, 7, 81, 0, 5, 82, 31, 0, 0, 1, 13, 0, 0, 0, 5, 84, 3, 0, 0, 5, 88, 17, 0, 0, 3, 22, 11, 87, 0, 1, 85, 0, 0, 0, 1, 90, 0, 0, 0, 1, 86, 0, 0, 0, 1, 89, 0, 0, 0, 1, 91, 0, 0, 0, 1, 88, 0, 0, 0, 5, 92, 1, 0, 0, 3, 16, 8, 95, 0, 5, 94, 2, 0, 0, 259, 24, 12, 96, 0, 1, 93, 0, 0, 0, 1, 96, 0, 0, 0, 1, 15, 0, 0, 0, 3, 18, 9, 102, 0, 5, 99, 27, 0, 0, 3, 18, 9, 101, 0, 1, 98, 0, 0, 0, 1, 104, 0, 0, 0, 1, 100, 0, 0, 0, 1, 103, 0, 0, 0, 1, 107, 0, 0, 0, 1, 102, 0, 0, 0, 5, 107, 29, 0, 0, 1, 97, 0, 0, 0, 1, 105, 0, 0, 0, 1, 17, 0, 0, 0, 5, 111, 17, 0, 0, 5, 110, 28, 0, 0, 5, 112, 17, 0, 0, 1, 109, 0, 0, 0, 1, 112, 0, 0, 0, 1, 19, 0, 0, 0, 3, 28, 14, 114, 0, 5, 115, 14, 0, 0, 5, 116, 30, 0, 0, 3, 28, 14, 121, 0, 5, 118, 27, 0, 0, 3, 28, 14, 120, 0, 1, 117, 0, 0, 0, 1, 123, 0, 0, 0, 1, 119, 0, 0, 0, 1, 122, 0, 0, 0, 1, 124, 0, 0, 0, 1, 121, 0, 0, 0, 5, 125, 31, 0, 0, 1, 21, 0, 0, 0, 7, 128, 0, 0, 0, 1, 126, 0, 0, 0, 1, 128, 0, 0, 0, 1, 129, 0, 0, 0, 5, 130, 4, 0, 0, 5, 131, 17, 0, 0, 5, 132, 7, 0, 0, 259, 26, 13, 133, 0, 1, 23, 0, 0, 0, 6, 135, 12, 4294967295, 0, 5, 136, 15, 0, 0, 3, 24, 12, 144, 6, 5, 138, 30, 0, 0, 3, 24, 12, 139, 0, 5, 140, 31, 0, 0, 1, 144, 0, 0, 0, 3, 26, 13, 144, 0, 3, 20, 10, 144, 0, 1, 134, 0, 0, 0, 1, 137, 0, 0, 0, 1, 141, 0, 0, 0, 1, 142, 0, 0, 0, 1, 153, 0, 0, 0, 10, 146, 5, 0, 0, 5, 147, 12, 0, 0, 3, 24, 12, 152, 6, 10, 149, 4, 0, 0, 5, 150, 13, 0, 0, 3, 24, 12, 152, 5, 1, 145, 0, 0, 0, 1, 148, 0, 0, 0, 1, 155, 0, 0, 0, 1, 151, 0, 0, 0, 1, 154, 0, 0, 0, 1, 25, 0, 0, 0, 1, 153, 0, 0, 0, 3, 28, 14, 157, 0, 7, 158, 1, 0, 0, 259, 28, 14, 159, 0, 1, 27, 0, 0, 0, 259, 18, 9, 166, 0, 5, 166, 18, 0, 0, 5, 166, 19, 0, 0, 5, 166, 20, 0, 0, 5, 166, 16, 0, 0, 1, 160, 0, 0, 0, 1, 161, 0, 0, 0, 1, 162, 0, 0, 0, 1, 163, 0, 0, 0, 1, 164, 0, 0, 0, 1, 29, 0, 0, 0, 0, 1, 1, 0, 2, 1, 1, 1, 2, 2, 5, 6, 21, 26, 96, 0, 0, 0, 132120576, 0, 0, 0, 33, 40, 51, 62, 72, 76, 88, 95, 102, 106, 111, 121, 127, 143, 151, 153, 165, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29];
 static ATN_CELL: OnceLock<ParserAtn> = OnceLock::new();
 
 /// Validates and caches the packed grammar ATN for all parser instances.
@@ -1796,7 +2077,11 @@ antlr4_runtime::__antlr4_rust_parser_entry_points! {
 /// - `load()`
 /// - `describe()`
 /// - `query()`
+/// - `cte_clause()`
+/// - `cte()`
+/// - `query_body()`
 /// - `select_list()`
+/// - `column_ref()`
 /// - `expressao_in()`
 /// - `join()`
 /// - `condition()`
@@ -1840,7 +2125,7 @@ where
         }
     }
 
-    const __GENERATED_RULE_BODIES: [Option<antlr4_runtime::generated::GeneratedRuleBody<Self>>; 11] = [
+    const __GENERATED_RULE_BODIES: [Option<antlr4_runtime::generated::GeneratedRuleBody<Self>>; 15] = [
         Some(Self::parse_generated_rule_0),
         Some(Self::parse_generated_rule_1),
         Some(Self::parse_generated_rule_2),
@@ -1849,9 +2134,13 @@ where
         Some(Self::parse_generated_rule_5),
         Some(Self::parse_generated_rule_6),
         Some(Self::parse_generated_rule_7),
-        Some(Self::parse_generated_rule_8_precedence),
+        Some(Self::parse_generated_rule_8),
         Some(Self::parse_generated_rule_9),
         Some(Self::parse_generated_rule_10),
+        Some(Self::parse_generated_rule_11),
+        Some(Self::parse_generated_rule_12_precedence),
+        Some(Self::parse_generated_rule_13),
+        Some(Self::parse_generated_rule_14),
     ];
 
     #[allow(dead_code)]
@@ -1878,21 +2167,21 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 22isize, self.dispatch_generated_rule(1, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                let mut __loop_iter_25 = true;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 30isize, self.dispatch_generated_rule(1, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                let mut __loop_iter_33 = true;
                 loop {
-                    self.base.sync_into(atn(), 25, &mut __ctx, __loop_iter_25, &mut __sync_error)?;
+                    self.base.sync_into(atn(), 33, &mut __ctx, __loop_iter_33, &mut __sync_error)?;
                     let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
                     let __prediction = match self.base.la(1) {
-                        3 | 8..=9 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        3 | 8..=10 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                         -1 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                         _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                     };
-                    self.base.record_generated_prediction_diagnostic(atn(), 25, &__prediction);
+                    self.base.record_generated_prediction_diagnostic(atn(), 33, &__prediction);
                     match __prediction.alt {
                         1 => {
-                            __loop_iter_25 = true;
-                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 22isize, self.dispatch_generated_rule(1, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                            __loop_iter_33 = true;
+                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 30isize, self.dispatch_generated_rule(1, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                         }
                         2 => {
                             break;
@@ -1900,7 +2189,7 @@ where
                         _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                     }
                 }
-                self.base.match_token_into(-1, 28, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(-1, 36, atn(), &mut __ctx, &mut __consumed_eof)?;
             }
             success {}
             recovery {}
@@ -1918,39 +2207,39 @@ where
             body {
                 let mut __decision_start = antlr4_runtime::IntStream::index(self.base.input());
                 let __prediction = match self.base.la(1) {
-                    3 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    3 | 10 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                     8 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                     9 => antlr4_runtime::ParserAtnPrediction { alt: 3, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                     _ => {
-                        self.base.sync_into(atn(), 32, &mut __ctx, false, &mut __sync_error)?;
+                        self.base.sync_into(atn(), 40, &mut __ctx, false, &mut __sync_error)?;
                         __decision_start = antlr4_runtime::IntStream::index(self.base.input());
                         match self.base.la(1) {
-                            3 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            3 | 10 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                             8 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                             9 => antlr4_runtime::ParserAtnPrediction { alt: 3, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                             _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                         }
                     }
                 };
-                self.base.record_generated_prediction_diagnostic(atn(), 32, &__prediction);
+                self.base.record_generated_prediction_diagnostic(atn(), 40, &__prediction);
                 match __prediction.alt {
                     1 => {
                         if __ctx.context_alt_number() == 0 {
                             __ctx.set_context_alt_number(1);
                         }
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 29isize, self.dispatch_generated_rule(4, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 37isize, self.dispatch_generated_rule(4, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                     }
                     2 => {
                         if __ctx.context_alt_number() == 0 {
                             __ctx.set_context_alt_number(2);
                         }
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 30isize, self.dispatch_generated_rule(2, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 38isize, self.dispatch_generated_rule(2, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                     }
                     3 => {
                         if __ctx.context_alt_number() == 0 {
                             __ctx.set_context_alt_number(3);
                         }
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 31isize, self.dispatch_generated_rule(3, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 39isize, self.dispatch_generated_rule(3, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                     }
                     _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 }
@@ -1969,9 +2258,9 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                self.base.match_token_into(8, 35, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(18, 36, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(29, 37, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(8, 43, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(20, 44, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(32, 45, atn(), &mut __ctx, &mut __consumed_eof)?;
             }
             success {}
             recovery {}
@@ -1987,9 +2276,9 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                self.base.match_token_into(9, 39, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(15, 40, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(29, 41, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(9, 47, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(17, 48, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(32, 49, atn(), &mut __ctx, &mut __consumed_eof)?;
             }
             success {}
             recovery {}
@@ -2005,52 +2294,20 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                self.base.match_token_into(3, 43, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(15, 47, atn(), &mut __ctx, &mut __consumed_eof)?;
-                let mut __loop_iter_47 = false;
-                loop {
-                    self.base.sync_into(atn(), 47, &mut __ctx, __loop_iter_47, &mut __sync_error)?;
-                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                    let __prediction = match self.base.la(1) {
-                        4..=6 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                        1 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
-                    };
-                    self.base.record_generated_prediction_diagnostic(atn(), 47, &__prediction);
-                    match __prediction.alt {
-                        1 => {
-                            __loop_iter_47 = true;
-                            if __ctx.context_alt_number() == 0 {
-                                __ctx.set_context_alt_number(1);
-                            }
-                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 44isize, self.dispatch_generated_rule(7, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                        }
-                        2 => {
-                            if __ctx.context_alt_number() == 0 {
-                                __ctx.set_context_alt_number(2);
-                            }
-                            break;
-                        }
-                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
-                    }
-                }
-                self.base.match_token_into(1, 51, atn(), &mut __ctx, &mut __consumed_eof)?;
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 51isize, self.dispatch_generated_rule(5, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                self.base.sync_into(atn(), 54, &mut __ctx, false, &mut __sync_error)?;
+                self.base.sync_into(atn(), 51, &mut __ctx, false, &mut __sync_error)?;
                 let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
                 let __prediction = match self.base.la(1) {
-                    2 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                    29 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    10 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    3 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                     _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 };
-                self.base.record_generated_prediction_diagnostic(atn(), 54, &__prediction);
+                self.base.record_generated_prediction_diagnostic(atn(), 51, &__prediction);
                 match __prediction.alt {
                     1 => {
                         if __ctx.context_alt_number() == 0 {
                             __ctx.set_context_alt_number(1);
                         }
-                        self.base.match_token_into(2, 53, atn(), &mut __ctx, &mut __consumed_eof)?;
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 53isize, self.dispatch_generated_rule(8, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 50isize, self.dispatch_generated_rule(5, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                     }
                     2 => {
                         if __ctx.context_alt_number() == 0 {
@@ -2059,7 +2316,8 @@ where
                     }
                     _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 }
-                self.base.match_token_into(29, 57, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 53isize, self.dispatch_generated_rule(7, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.match_token_into(32, 55, atn(), &mut __ctx, &mut __consumed_eof)?;
             }
             success {}
             recovery {}
@@ -2075,63 +2333,35 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                let mut __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                let __prediction = match self.base.la(1) {
-                    15 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                    26 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                    _ => {
-                        self.base.sync_into(atn(), 67, &mut __ctx, false, &mut __sync_error)?;
-                        __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                        match self.base.la(1) {
-                            15 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                            26 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                            _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
-                        }
-                    }
-                };
-                self.base.record_generated_prediction_diagnostic(atn(), 67, &__prediction);
-                match __prediction.alt {
-                    1 => {
-                        if __ctx.context_alt_number() == 0 {
-                            __ctx.set_context_alt_number(1);
-                        }
-                        self.base.match_token_into(15, 63, atn(), &mut __ctx, &mut __consumed_eof)?;
-                        let mut __loop_iter_63 = false;
-                        loop {
-                            self.base.sync_into(atn(), 63, &mut __ctx, __loop_iter_63, &mut __sync_error)?;
-                            let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                            let __prediction = match self.base.la(1) {
-                                25 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                                2 | 29 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                                _ => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                            };
-                            self.base.record_generated_prediction_diagnostic(atn(), 63, &__prediction);
-                            match __prediction.alt {
-                                1 => {
-                                    __loop_iter_63 = true;
-                                    if __ctx.context_alt_number() == 0 {
-                                        __ctx.set_context_alt_number(1);
-                                    }
-                                    self.base.match_token_into(25, 60, atn(), &mut __ctx, &mut __consumed_eof)?;
-                                    self.base.match_token_into(15, 62, atn(), &mut __ctx, &mut __consumed_eof)?;
-                                }
-                                2 => {
-                                    if __ctx.context_alt_number() == 0 {
-                                        __ctx.set_context_alt_number(2);
-                                    }
-                                    break;
-                                }
-                                _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                self.base.match_token_into(10, 57, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 57isize, self.dispatch_generated_rule(6, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                let mut __loop_iter_62 = false;
+                loop {
+                    self.base.sync_into(atn(), 62, &mut __ctx, __loop_iter_62, &mut __sync_error)?;
+                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                    let __prediction = match self.base.la(1) {
+                        27 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        3 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        _ => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    };
+                    self.base.record_generated_prediction_diagnostic(atn(), 62, &__prediction);
+                    match __prediction.alt {
+                        1 => {
+                            __loop_iter_62 = true;
+                            if __ctx.context_alt_number() == 0 {
+                                __ctx.set_context_alt_number(1);
                             }
+                            self.base.match_token_into(27, 59, atn(), &mut __ctx, &mut __consumed_eof)?;
+                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 59isize, self.dispatch_generated_rule(6, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                         }
-                    }
-                    2 => {
-                        if __ctx.context_alt_number() == 0 {
-                            __ctx.set_context_alt_number(2);
+                        2 => {
+                            if __ctx.context_alt_number() == 0 {
+                                __ctx.set_context_alt_number(2);
+                            }
+                            break;
                         }
-                        self.base.match_token_into(26, 68, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                     }
-                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 }
             }
             success {}
@@ -2148,39 +2378,63 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 69isize, self.dispatch_generated_rule(10, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                self.base.match_token_into(12, 71, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(27, 72, atn(), &mut __ctx, &mut __consumed_eof)?;
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 72isize, self.dispatch_generated_rule(10, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                let mut __loop_iter_77 = false;
-                loop {
-                    self.base.sync_into(atn(), 77, &mut __ctx, __loop_iter_77, &mut __sync_error)?;
-                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                    let __prediction = match self.base.la(1) {
-                        25 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                        28 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
-                    };
-                    self.base.record_generated_prediction_diagnostic(atn(), 77, &__prediction);
-                    match __prediction.alt {
-                        1 => {
-                            __loop_iter_77 = true;
-                            if __ctx.context_alt_number() == 0 {
-                                __ctx.set_context_alt_number(1);
-                            }
-                            self.base.match_token_into(25, 74, atn(), &mut __ctx, &mut __consumed_eof)?;
-                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 74isize, self.dispatch_generated_rule(10, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.match_token_into(17, 76, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.sync_into(atn(), 76, &mut __ctx, false, &mut __sync_error)?;
+                let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                let __prediction = match self.base.la(1) {
+                    30 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    11 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                };
+                self.base.record_generated_prediction_diagnostic(atn(), 76, &__prediction);
+                match __prediction.alt {
+                    1 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(1);
                         }
-                        2 => {
-                            if __ctx.context_alt_number() == 0 {
-                                __ctx.set_context_alt_number(2);
+                        self.base.match_token_into(30, 67, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        self.base.match_token_into(17, 72, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        let mut __loop_iter_72 = false;
+                        loop {
+                            self.base.sync_into(atn(), 72, &mut __ctx, __loop_iter_72, &mut __sync_error)?;
+                            let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                            let __prediction = match self.base.la(1) {
+                                27 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                                31 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                                _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                            };
+                            self.base.record_generated_prediction_diagnostic(atn(), 72, &__prediction);
+                            match __prediction.alt {
+                                1 => {
+                                    __loop_iter_72 = true;
+                                    if __ctx.context_alt_number() == 0 {
+                                        __ctx.set_context_alt_number(1);
+                                    }
+                                    self.base.match_token_into(27, 69, atn(), &mut __ctx, &mut __consumed_eof)?;
+                                    self.base.match_token_into(17, 71, atn(), &mut __ctx, &mut __consumed_eof)?;
+                                }
+                                2 => {
+                                    if __ctx.context_alt_number() == 0 {
+                                        __ctx.set_context_alt_number(2);
+                                    }
+                                    break;
+                                }
+                                _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                             }
-                            break;
                         }
-                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                        self.base.match_token_into(31, 77, atn(), &mut __ctx, &mut __consumed_eof)?;
                     }
+                    2 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(2);
+                        }
+                    }
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 }
-                self.base.match_token_into(28, 81, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(11, 79, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(30, 80, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 80isize, self.dispatch_generated_rule(7, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.match_token_into(31, 82, atn(), &mut __ctx, &mut __consumed_eof)?;
             }
             success {}
             recovery {}
@@ -2196,20 +2450,52 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                self.base.sync_into(atn(), 83, &mut __ctx, false, &mut __sync_error)?;
+                self.base.match_token_into(3, 84, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(17, 88, atn(), &mut __ctx, &mut __consumed_eof)?;
+                let mut __loop_iter_88 = false;
+                loop {
+                    self.base.sync_into(atn(), 88, &mut __ctx, __loop_iter_88, &mut __sync_error)?;
+                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                    let __prediction = match self.base.la(1) {
+                        4..=6 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        1 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                    };
+                    self.base.record_generated_prediction_diagnostic(atn(), 88, &__prediction);
+                    match __prediction.alt {
+                        1 => {
+                            __loop_iter_88 = true;
+                            if __ctx.context_alt_number() == 0 {
+                                __ctx.set_context_alt_number(1);
+                            }
+                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 85isize, self.dispatch_generated_rule(11, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        }
+                        2 => {
+                            if __ctx.context_alt_number() == 0 {
+                                __ctx.set_context_alt_number(2);
+                            }
+                            break;
+                        }
+                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                    }
+                }
+                self.base.match_token_into(1, 92, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 92isize, self.dispatch_generated_rule(8, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.sync_into(atn(), 95, &mut __ctx, false, &mut __sync_error)?;
                 let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
                 let __prediction = match self.base.la(1) {
-                    5..=6 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                    4 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                    2 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    31..=32 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    _ => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                 };
-                self.base.record_generated_prediction_diagnostic(atn(), 83, &__prediction);
+                self.base.record_generated_prediction_diagnostic(atn(), 95, &__prediction);
                 match __prediction.alt {
                     1 => {
                         if __ctx.context_alt_number() == 0 {
                             __ctx.set_context_alt_number(1);
                         }
-                        self.base.match_set_into(&[(5, 6)], 84, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        self.base.match_token_into(2, 94, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 94isize, self.dispatch_generated_rule(12, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                     }
                     2 => {
                         if __ctx.context_alt_number() == 0 {
@@ -2218,10 +2504,6 @@ where
                     }
                     _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 }
-                self.base.match_token_into(4, 86, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(15, 87, atn(), &mut __ctx, &mut __consumed_eof)?;
-                self.base.match_token_into(7, 88, atn(), &mut __ctx, &mut __consumed_eof)?;
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 88isize, self.dispatch_generated_rule(9, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
             }
             success {}
             recovery {}
@@ -2229,161 +2511,71 @@ where
     }
 
     #[allow(dead_code)]
-    fn parse_generated_rule_8(&mut self, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
-        self.parse_generated_rule_8_precedence(0, allow_fallback)
-    }
-
-    #[allow(dead_code)]
-    fn parse_generated_rule_8_precedence(&mut self, __precedence: i32, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+    fn parse_generated_rule_8(&mut self, __precedence: i32, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+        let _ = __precedence;
         antlr4_runtime::__antlr4_rust_generated_rule! {
-            recursive self, 16isize, 8, __precedence, allow_fallback, atn(), GeneratedRuleError::Fatal;
+            ordinary self, 16isize, 8, allow_fallback, atn(), GeneratedRuleError::Fatal;
             retry [adaptive];
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
                 let mut __decision_start = antlr4_runtime::IntStream::index(self.base.input());
                 let __prediction = match self.base.la(1) {
-                    13 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                    27 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    17 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    29 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                     _ => {
-                        self.base.sync_into(atn(), 99, &mut __ctx, false, &mut __sync_error)?;
+                        self.base.sync_into(atn(), 106, &mut __ctx, false, &mut __sync_error)?;
                         __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                        if let Some(__prediction) = self.base.ll1_decision_prediction(atn(), 99) {
-                            __prediction
-                        } else {
-                            let __prediction = {
-                                let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
-                                __simulator.adaptive_predict_stream_info_sll_probe(8, 0, self.base.input())
-                                    .map_err(|__error| match __error {
-                                        antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
-                                        _ => self.base.no_viable_alternative_error(__decision_start),
-                                    })?
-                            };
-                            if __prediction.requires_full_context && self.base.prediction_mode() != antlr4_runtime::PredictionMode::Sll {
-                                let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
-                                let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
-                                __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
-                                __simulator.adaptive_predict_stream_info_with_context(8, 0, self.base.input(), __prediction_context)
-                                    .map_err(|__error| match __error {
-                                        antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
-                                        _ => self.base.no_viable_alternative_error(__decision_start),
-                                    })?
-                            } else {
-                                __prediction
-                            }
+                        match self.base.la(1) {
+                            17 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            29 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                         }
                     }
                 };
-                self.base.record_generated_prediction_diagnostic(atn(), 99, &__prediction);
+                self.base.record_generated_prediction_diagnostic(atn(), 106, &__prediction);
                 match __prediction.alt {
                     1 => {
                         if __ctx.context_alt_number() == 0 {
                             __ctx.set_context_alt_number(1);
                         }
-                        let action = self.base.parser_action_at_current_indexed(90, 8, 0, __rule_start, __consumed_eof);
-                        let _ = action;
-                        self.base.match_token_into(13, 92, atn(), &mut __ctx, &mut __consumed_eof)?;
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 92isize, self.dispatch_generated_rule(8, 6, false).map_err(GeneratedRuleError::into_error), __ctx);
-                    }
-                    2 => {
-                        if __ctx.context_alt_number() == 0 {
-                            __ctx.set_context_alt_number(2);
-                        }
-                        self.base.match_token_into(27, 94, atn(), &mut __ctx, &mut __consumed_eof)?;
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 94isize, self.dispatch_generated_rule(8, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                        self.base.match_token_into(28, 96, atn(), &mut __ctx, &mut __consumed_eof)?;
-                    }
-                    3 => {
-                        if __ctx.context_alt_number() == 0 {
-                            __ctx.set_context_alt_number(3);
-                        }
                         antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 97isize, self.dispatch_generated_rule(9, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                    }
-                    4 => {
-                        if __ctx.context_alt_number() == 0 {
-                            __ctx.set_context_alt_number(4);
-                        }
-                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 98isize, self.dispatch_generated_rule(6, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                    }
-                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
-                }
-                loop {
-                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                    let __prediction = match self.base.left_recursive_loop_enter_prediction(atn(), 109, __precedence) {
-                        Some(true) => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: true, diagnostic: None },
-                        Some(false) => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
-                        None => {
-                            let __prediction_precedence = if __precedence <= 0 { 0 } else { __precedence as usize };
-                            let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
-                            let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
-                            __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
-                            match __simulator.adaptive_predict_stream_info_with_context(10, __prediction_precedence, self.base.input(), __prediction_context) {
-                                Ok(__prediction) => __prediction,
-                                Err(antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { .. }) => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: true, has_semantic_context: false, diagnostic: None },
-                                Err(_) => return Err(self.base.no_viable_alternative_error(__decision_start)),
-                            }
-                        }
-                    };
-                    self.base.record_generated_prediction_diagnostic(atn(), 109, &__prediction);
-                    match __prediction.alt {
-                        1 => {
-                            self.base.parse_listener_exit_rule(8);
-                            if let Some(__depth_error) = self.base.rule_depth_cap_violation() {
-                                return Err(__depth_error);
-                            }
-                            self.base.push_new_recursion_context_with_previous(16isize, 8, &mut __ctx);
-                            if let Some(__listener_error) = self.base.parse_listener_enter_rule(8) {
-                                return Err(__listener_error);
-                            }
+                        let mut __loop_iter_102 = false;
+                        loop {
+                            self.base.sync_into(atn(), 102, &mut __ctx, __loop_iter_102, &mut __sync_error)?;
                             let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
-                            let __prediction = {
-                                let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
-                                let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
-                                __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
-                                __simulator.adaptive_predict_stream_info_with_context(9, 0, self.base.input(), __prediction_context)
-                                    .map_err(|__error| match __error {
-                                        antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
-                                        _ => self.base.no_viable_alternative_error(__decision_start),
-                                    })?
+                            let __prediction = match self.base.la(1) {
+                                27 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                                2 | 31..=32 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                                _ => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
                             };
-                            if self.base.report_diagnostic_errors() {
-                                let __diagnostic_la = self.base.la(1);
-                                let mut __diagnostic_alts = Vec::new();
-                                if __diagnostic_la == 10 {
-                                    __diagnostic_alts.push(1);
-                                }
-                                if __diagnostic_la == 11 {
-                                    __diagnostic_alts.push(2);
-                                }
-                                self.base.record_generated_ambiguity_diagnostic(atn(), 107, __decision_start, __decision_start, &__diagnostic_alts);
-                            }
+                            self.base.record_generated_prediction_diagnostic(atn(), 102, &__prediction);
                             match __prediction.alt {
                                 1 => {
+                                    __loop_iter_102 = true;
                                     if __ctx.context_alt_number() == 0 {
                                         __ctx.set_context_alt_number(1);
                                     }
-                                    if !self.base.precpred(5) {
-                                        return Err(self.base.failed_predicate_error("precpred(_ctx, 5)"));
-                                    }
-                                    self.base.match_token_into(10, 103, atn(), &mut __ctx, &mut __consumed_eof)?;
-                                    antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 103isize, self.dispatch_generated_rule(8, 6, false).map_err(GeneratedRuleError::into_error), __ctx);
+                                    self.base.match_token_into(27, 99, atn(), &mut __ctx, &mut __consumed_eof)?;
+                                    antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 99isize, self.dispatch_generated_rule(9, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
                                 }
                                 2 => {
                                     if __ctx.context_alt_number() == 0 {
                                         __ctx.set_context_alt_number(2);
                                     }
-                                    if !self.base.precpred(4) {
-                                        return Err(self.base.failed_predicate_error("precpred(_ctx, 4)"));
-                                    }
-                                    self.base.match_token_into(11, 106, atn(), &mut __ctx, &mut __consumed_eof)?;
-                                    antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 106isize, self.dispatch_generated_rule(8, 5, false).map_err(GeneratedRuleError::into_error), __ctx);
+                                    break;
                                 }
                                 _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                             }
                         }
-                        2 => break,
-                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                     }
+                    2 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(2);
+                        }
+                        self.base.match_token_into(29, 107, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
                 }
             }
             success {}
@@ -2400,9 +2592,49 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 112isize, self.dispatch_generated_rule(10, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
-                self.base.match_set_into(&[(19, 24)], 114, atn(), &mut __ctx, &mut __consumed_eof)?;
-                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 114isize, self.dispatch_generated_rule(10, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.match_token_into(17, 111, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.sync_into(atn(), 111, &mut __ctx, false, &mut __sync_error)?;
+                let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                let __prediction = if let Some(__prediction) = self.base.ll1_decision_prediction(atn(), 111) {
+                    __prediction
+                } else {
+                    let __prediction = {
+                        let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
+                        __simulator.adaptive_predict_stream_info_sll_probe(10, 0, self.base.input())
+                            .map_err(|__error| match __error {
+                                antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
+                                _ => self.base.no_viable_alternative_error(__decision_start),
+                            })?
+                    };
+                    if __prediction.requires_full_context && self.base.prediction_mode() != antlr4_runtime::PredictionMode::Sll {
+                        let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
+                        let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
+                        __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
+                        __simulator.adaptive_predict_stream_info_with_context(10, 0, self.base.input(), __prediction_context)
+                            .map_err(|__error| match __error {
+                                antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
+                                _ => self.base.no_viable_alternative_error(__decision_start),
+                            })?
+                    } else {
+                        __prediction
+                    }
+                };
+                self.base.record_generated_prediction_diagnostic(atn(), 111, &__prediction);
+                match __prediction.alt {
+                    1 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(1);
+                        }
+                        self.base.match_token_into(28, 110, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        self.base.match_token_into(17, 112, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    2 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(2);
+                        }
+                    }
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                }
             }
             success {}
             recovery {}
@@ -2418,7 +2650,330 @@ where
             bind (__ctx, __rule_start, __consumed_eof, __sync_error);
             setup {}
             body {
-                self.base.match_set_into(&[(14, 18)], 117, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 113isize, self.dispatch_generated_rule(14, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.match_token_into(14, 115, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(30, 116, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 116isize, self.dispatch_generated_rule(14, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                let mut __loop_iter_121 = false;
+                loop {
+                    self.base.sync_into(atn(), 121, &mut __ctx, __loop_iter_121, &mut __sync_error)?;
+                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                    let __prediction = match self.base.la(1) {
+                        27 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        31 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                    };
+                    self.base.record_generated_prediction_diagnostic(atn(), 121, &__prediction);
+                    match __prediction.alt {
+                        1 => {
+                            __loop_iter_121 = true;
+                            if __ctx.context_alt_number() == 0 {
+                                __ctx.set_context_alt_number(1);
+                            }
+                            self.base.match_token_into(27, 118, atn(), &mut __ctx, &mut __consumed_eof)?;
+                            antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 118isize, self.dispatch_generated_rule(14, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        }
+                        2 => {
+                            if __ctx.context_alt_number() == 0 {
+                                __ctx.set_context_alt_number(2);
+                            }
+                            break;
+                        }
+                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                    }
+                }
+                self.base.match_token_into(31, 125, atn(), &mut __ctx, &mut __consumed_eof)?;
+            }
+            success {}
+            recovery {}
+        }
+    }
+
+    #[allow(dead_code)]
+    fn parse_generated_rule_11(&mut self, __precedence: i32, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+        let _ = __precedence;
+        antlr4_runtime::__antlr4_rust_generated_rule! {
+            ordinary self, 22isize, 11, allow_fallback, atn(), GeneratedRuleError::Fatal;
+            retry [adaptive];
+            bind (__ctx, __rule_start, __consumed_eof, __sync_error);
+            setup {}
+            body {
+                self.base.sync_into(atn(), 127, &mut __ctx, false, &mut __sync_error)?;
+                let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                let __prediction = match self.base.la(1) {
+                    5..=6 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    4 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                };
+                self.base.record_generated_prediction_diagnostic(atn(), 127, &__prediction);
+                match __prediction.alt {
+                    1 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(1);
+                        }
+                        self.base.match_set_into(&[(5, 6)], 128, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    2 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(2);
+                        }
+                    }
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                }
+                self.base.match_token_into(4, 130, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(17, 131, atn(), &mut __ctx, &mut __consumed_eof)?;
+                self.base.match_token_into(7, 132, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 132isize, self.dispatch_generated_rule(13, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+            }
+            success {}
+            recovery {}
+        }
+    }
+
+    #[allow(dead_code)]
+    fn parse_generated_rule_12(&mut self, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+        self.parse_generated_rule_12_precedence(0, allow_fallback)
+    }
+
+    #[allow(dead_code)]
+    fn parse_generated_rule_12_precedence(&mut self, __precedence: i32, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+        antlr4_runtime::__antlr4_rust_generated_rule! {
+            recursive self, 24isize, 12, __precedence, allow_fallback, atn(), GeneratedRuleError::Fatal;
+            retry [adaptive];
+            bind (__ctx, __rule_start, __consumed_eof, __sync_error);
+            setup {}
+            body {
+                let mut __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                let __prediction = match self.base.la(1) {
+                    15 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    30 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    _ => {
+                        self.base.sync_into(atn(), 143, &mut __ctx, false, &mut __sync_error)?;
+                        __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                        if let Some(__prediction) = self.base.ll1_decision_prediction(atn(), 143) {
+                            __prediction
+                        } else {
+                            let __prediction = {
+                                let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
+                                __simulator.adaptive_predict_stream_info_sll_probe(13, 0, self.base.input())
+                                    .map_err(|__error| match __error {
+                                        antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
+                                        _ => self.base.no_viable_alternative_error(__decision_start),
+                                    })?
+                            };
+                            if __prediction.requires_full_context && self.base.prediction_mode() != antlr4_runtime::PredictionMode::Sll {
+                                let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
+                                let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
+                                __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
+                                __simulator.adaptive_predict_stream_info_with_context(13, 0, self.base.input(), __prediction_context)
+                                    .map_err(|__error| match __error {
+                                        antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
+                                        _ => self.base.no_viable_alternative_error(__decision_start),
+                                    })?
+                            } else {
+                                __prediction
+                            }
+                        }
+                    }
+                };
+                self.base.record_generated_prediction_diagnostic(atn(), 143, &__prediction);
+                match __prediction.alt {
+                    1 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(1);
+                        }
+                        let action = self.base.parser_action_at_current_indexed(134, 12, 0, __rule_start, __consumed_eof);
+                        let _ = action;
+                        self.base.match_token_into(15, 136, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 136isize, self.dispatch_generated_rule(12, 6, false).map_err(GeneratedRuleError::into_error), __ctx);
+                    }
+                    2 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(2);
+                        }
+                        self.base.match_token_into(30, 138, atn(), &mut __ctx, &mut __consumed_eof)?;
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 138isize, self.dispatch_generated_rule(12, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                        self.base.match_token_into(31, 140, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    3 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(3);
+                        }
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 141isize, self.dispatch_generated_rule(13, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                    }
+                    4 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(4);
+                        }
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 142isize, self.dispatch_generated_rule(10, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                    }
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                }
+                loop {
+                    let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                    let __prediction = match self.base.left_recursive_loop_enter_prediction(atn(), 153, __precedence) {
+                        Some(true) => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: true, diagnostic: None },
+                        Some(false) => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                        None => {
+                            let __prediction_precedence = if __precedence <= 0 { 0 } else { __precedence as usize };
+                            let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
+                            let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
+                            __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
+                            match __simulator.adaptive_predict_stream_info_with_context(15, __prediction_precedence, self.base.input(), __prediction_context) {
+                                Ok(__prediction) => __prediction,
+                                Err(antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { .. }) => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: true, has_semantic_context: false, diagnostic: None },
+                                Err(_) => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                            }
+                        }
+                    };
+                    self.base.record_generated_prediction_diagnostic(atn(), 153, &__prediction);
+                    match __prediction.alt {
+                        1 => {
+                            self.base.parse_listener_exit_rule(12);
+                            if let Some(__depth_error) = self.base.rule_depth_cap_violation() {
+                                return Err(__depth_error);
+                            }
+                            self.base.push_new_recursion_context_with_previous(24isize, 12, &mut __ctx);
+                            if let Some(__listener_error) = self.base.parse_listener_enter_rule(12) {
+                                return Err(__listener_error);
+                            }
+                            let __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                            let __prediction = {
+                                let __simulator = self.simulator.get_or_insert_with(|| antlr4_runtime::ParserAtnSimulator::new_shared(atn()));
+                                let __prediction_context = __simulator.intern_prediction_context(self.base.rule_context_version(), self.base.prediction_context_return_states(atn()));
+                                __simulator.set_exact_ambig_detection(self.base.prediction_mode() == antlr4_runtime::PredictionMode::LlExactAmbigDetection);
+                                __simulator.adaptive_predict_stream_info_with_context(14, 0, self.base.input(), __prediction_context)
+                                    .map_err(|__error| match __error {
+                                        antlr4_runtime::ParserAtnSimulatorError::NoViableAlt { index, .. } => self.base.no_viable_alternative_error_at(__decision_start, index),
+                                        _ => self.base.no_viable_alternative_error(__decision_start),
+                                    })?
+                            };
+                            if self.base.report_diagnostic_errors() {
+                                let __diagnostic_la = self.base.la(1);
+                                let mut __diagnostic_alts = Vec::new();
+                                if __diagnostic_la == 12 {
+                                    __diagnostic_alts.push(1);
+                                }
+                                if __diagnostic_la == 13 {
+                                    __diagnostic_alts.push(2);
+                                }
+                                self.base.record_generated_ambiguity_diagnostic(atn(), 151, __decision_start, __decision_start, &__diagnostic_alts);
+                            }
+                            match __prediction.alt {
+                                1 => {
+                                    if __ctx.context_alt_number() == 0 {
+                                        __ctx.set_context_alt_number(1);
+                                    }
+                                    if !self.base.precpred(5) {
+                                        return Err(self.base.failed_predicate_error("precpred(_ctx, 5)"));
+                                    }
+                                    self.base.match_token_into(12, 147, atn(), &mut __ctx, &mut __consumed_eof)?;
+                                    antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 147isize, self.dispatch_generated_rule(12, 6, false).map_err(GeneratedRuleError::into_error), __ctx);
+                                }
+                                2 => {
+                                    if __ctx.context_alt_number() == 0 {
+                                        __ctx.set_context_alt_number(2);
+                                    }
+                                    if !self.base.precpred(4) {
+                                        return Err(self.base.failed_predicate_error("precpred(_ctx, 4)"));
+                                    }
+                                    self.base.match_token_into(13, 150, atn(), &mut __ctx, &mut __consumed_eof)?;
+                                    antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 150isize, self.dispatch_generated_rule(12, 5, false).map_err(GeneratedRuleError::into_error), __ctx);
+                                }
+                                _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                            }
+                        }
+                        2 => break,
+                        _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                    }
+                }
+            }
+            success {}
+            recovery {}
+        }
+    }
+
+    #[allow(dead_code)]
+    fn parse_generated_rule_13(&mut self, __precedence: i32, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+        let _ = __precedence;
+        antlr4_runtime::__antlr4_rust_generated_rule! {
+            ordinary self, 26isize, 13, allow_fallback, atn(), GeneratedRuleError::Fatal;
+            retry [adaptive];
+            bind (__ctx, __rule_start, __consumed_eof, __sync_error);
+            setup {}
+            body {
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 156isize, self.dispatch_generated_rule(14, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                self.base.match_set_into(&[(21, 26)], 158, atn(), &mut __ctx, &mut __consumed_eof)?;
+                antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 158isize, self.dispatch_generated_rule(14, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+            }
+            success {}
+            recovery {}
+        }
+    }
+
+    #[allow(dead_code)]
+    fn parse_generated_rule_14(&mut self, __precedence: i32, allow_fallback: bool) -> Result<antlr4_runtime::ParseTree, GeneratedRuleError> {
+        let _ = __precedence;
+        antlr4_runtime::__antlr4_rust_generated_rule! {
+            ordinary self, 28isize, 14, allow_fallback, atn(), GeneratedRuleError::Fatal;
+            retry [adaptive];
+            bind (__ctx, __rule_start, __consumed_eof, __sync_error);
+            setup {}
+            body {
+                let mut __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                let __prediction = match self.base.la(1) {
+                    17 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    18 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    19 => antlr4_runtime::ParserAtnPrediction { alt: 3, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    20 => antlr4_runtime::ParserAtnPrediction { alt: 4, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    16 => antlr4_runtime::ParserAtnPrediction { alt: 5, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                    _ => {
+                        self.base.sync_into(atn(), 165, &mut __ctx, false, &mut __sync_error)?;
+                        __decision_start = antlr4_runtime::IntStream::index(self.base.input());
+                        match self.base.la(1) {
+                            17 => antlr4_runtime::ParserAtnPrediction { alt: 1, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            18 => antlr4_runtime::ParserAtnPrediction { alt: 2, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            19 => antlr4_runtime::ParserAtnPrediction { alt: 3, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            20 => antlr4_runtime::ParserAtnPrediction { alt: 4, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            16 => antlr4_runtime::ParserAtnPrediction { alt: 5, requires_full_context: false, has_semantic_context: false, diagnostic: None },
+                            _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                        }
+                    }
+                };
+                self.base.record_generated_prediction_diagnostic(atn(), 165, &__prediction);
+                match __prediction.alt {
+                    1 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(1);
+                        }
+                        antlr4_runtime::__antlr4_rust_invoke_subrule!(self, 160isize, self.dispatch_generated_rule(9, 0, false).map_err(GeneratedRuleError::into_error), __ctx);
+                    }
+                    2 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(2);
+                        }
+                        self.base.match_token_into(18, 166, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    3 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(3);
+                        }
+                        self.base.match_token_into(19, 166, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    4 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(4);
+                        }
+                        self.base.match_token_into(20, 166, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    5 => {
+                        if __ctx.context_alt_number() == 0 {
+                            __ctx.set_context_alt_number(5);
+                        }
+                        self.base.match_token_into(16, 166, atn(), &mut __ctx, &mut __consumed_eof)?;
+                    }
+                    _ => return Err(self.base.no_viable_alternative_error(__decision_start)),
+                }
             }
             success {}
             recovery {}
@@ -2442,29 +2997,41 @@ where
     pub fn query(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(4)
     }
-    pub fn select_list(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+    pub fn cte_clause(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(5)
     }
-    pub fn expressao_in(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+    pub fn cte(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(6)
     }
-    pub fn join(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+    pub fn query_body(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(7)
     }
-    pub fn condition(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+    pub fn select_list(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(8)
     }
-    pub fn expr(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+    pub fn column_ref(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(9)
     }
-    pub fn value(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+    pub fn expressao_in(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
         self.parse_rule(10)
+    }
+    pub fn join(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+        self.parse_rule(11)
+    }
+    pub fn condition(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+        self.parse_rule(12)
+    }
+    pub fn expr(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+        self.parse_rule(13)
+    }
+    pub fn value(&mut self) -> Result<antlr4_runtime::ParseTree, antlr4_runtime::AntlrError> {
+        self.parse_rule(14)
     }
 
 
     fn run_action(&mut self, action: antlr4_runtime::ParserAction, tree: antlr4_runtime::ParseTree) {
         match action.source_state() {
-            90 => {}
+            134 => {}
             _ => { let _ = self.base.parser_action_hook(action, tree); }
         }
     }

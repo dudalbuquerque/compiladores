@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pipeline MiniSQL</title>
+<style>
+  :root { --fg:#f2f2f2; --muted:#c9c9c9; --accent:#f0a8ff; --err:#ff7b7b; --ok:#8be28b; --bg:#000; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI",Arial,sans-serif; width:980px; padding:24px 20px 32px; }
+  .grid { display:grid; grid-template-columns: 300px 260px 1fr; column-gap:18px; align-items:center; }
+  .c1 { grid-column:1; } .c2 { grid-column:2; } .c3 { grid-column:3; } .all { grid-column:1 / 4; }
+  .left-to-mid { grid-column:1 / 3; }
+  .input { border:2px solid var(--fg); border-radius:14px; padding:18px; text-align:center; font-size:18px; margin:0 60px; }
+  .box { border:2px solid var(--fg); padding:12px 8px; text-align:center; font-size:15px; line-height:1.35; }
+  .box b { font-size:16px; }
+  .box code { font-family:Consolas,monospace; font-size:13px; }
+  .box.new { border-color:var(--accent); }
+  .arrow { grid-column:2; display:flex; flex-direction:column; align-items:center; height:56px; position:relative; }
+  .arrow .line { width:2px; flex:1; background:var(--fg); }
+  .arrow .head { width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:11px solid var(--fg); }
+  .arrow .lbl { position:absolute; left:calc(50% + 14px); top:50%; transform:translateY(-50%); color:var(--accent); font-weight:700; font-size:15px; white-space:nowrap; }
+  .note { font-size:12.5px; color:var(--muted); line-height:1.55; }
+  .err { color:var(--err); font-size:12.5px; margin-top:6px; font-family:Consolas,monospace; }
+  pre { font-family:Consolas,monospace; font-size:12.5px; line-height:1.7; color:var(--fg); }
+  .tree { padding-left:40px; }
+  .db { border:2px dashed var(--muted); padding:10px; font-size:12.5px; line-height:1.5; }
+  .db b { font-size:13.5px; }
+  .db code { font-family:Consolas,monospace; font-size:12px; color:var(--muted); }
+  .side { display:flex; align-items:center; gap:8px; justify-content:flex-end; font-size:12px; color:var(--muted); }
+  .side .h { width:50px; height:2px; background:var(--muted); position:relative; }
+  .side .h::after { content:""; position:absolute; right:-2px; top:-5px; border-top:6px solid transparent; border-bottom:6px solid transparent; border-left:9px solid var(--muted); }
+  .out { color:var(--ok); }
+  .legend { margin-top:22px; font-size:12px; color:var(--muted); }
+  .legend span { display:inline-block; width:22px; height:12px; vertical-align:middle; margin:0 6px 0 16px; }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <div class="all input">"FROM users SELECT name WHERE credit &gt;= 150.50;"</div>
+  <div class="arrow"><div class="line"></div><div class="head"></div></div>
+
+  <div class="c2 box"><b>Análise Léxica</b><br>1. MiniSqlLexer</div>
+  <div class="c3 note">agrupa caracteres em tokens;<br>descarta espaços e comentários (-&gt; skip)</div>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div><span class="lbl">Tokens</span></div>
+
+  <div class="c2 box"><b>Análise Sintática</b><br>2. MiniSqlParser</div>
+  <div class="c3 note">verifica se a sequência de tokens obedece<br>às regras da gramática
+    <div class="err">✗ Erro de sintaxe: ...</div></div>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div><span class="lbl">Parse Tree</span></div>
+
+  <pre class="left-to-mid tree">program
+  └── statement ── query ── queryBody          (+ END)
+        ├── FROM  ID(users)  SELECT
+        ├── selectList ── columnRef ── ID(name)
+        └── WHERE ── condition ── expr
+                          ├── value ── columnRef ── ID(credit)
+                          ├── GREATER_EQUAL
+                          └── value ── FLOAT(150.50)</pre>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div></div>
+
+  <div class="c2 box"><b>Construção da AST</b><br>3. AstBuilder<br><code>(src/ast_builder.rs)</code></div>
+  <div class="c3 note">percorre a parse tree com um visitor e<br>descarta o que é ruído sintático<br>(parênteses, vírgulas, palavras-chave)</div>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div><span class="lbl">AST</span></div>
+
+  <pre class="left-to-mid tree">Program { statements: [ Query(Query {
+    ctes: [],
+    body: QueryBody {
+        table:     "users",
+        joins:     [],
+        select:    Columns(["name"]),
+        condition: Some(Expr(credit &gt;= 150.50)),
+    },
+}) ] }</pre>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div></div>
+
+  <div class="c1 side">
+    <div class="db"><b>Database</b> <code>(src/table.rs)</code><br>
+      esquema de <b>users</b>:<br>
+      <code>name String · age Int<br>type String · credit Float<br>active Boolean</code>
+    </div>
+    <div class="h"></div>
+  </div>
+  <div class="c2 box new"><b>Análise Semântica</b><br>4. TypeChecker<br><code>(src/type_checker.rs)</code></div>
+  <div class="c3 note">consulta o esquema das tabelas já carregadas:<br>
+    tabela existe? colunas do SELECT/WHERE existem?<br>
+    tipos dos dois lados do WHERE são compatíveis?
+    <div class="err">✗ Erro semântico: Tipos incompatíveis em<br>&nbsp;&nbsp;`age = 'vinte'`: a coluna 'age' é Int ...</div></div>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div><span class="lbl">AST verificada</span></div>
+
+  <div class="c1 side">linhas da tabela<div class="h"></div></div>
+  <div class="c2 box new"><b>Execução</b><br>5. Interpretador<br><code>(src/interpreter.rs)</code></div>
+  <div class="c3 note">filtra as linhas avaliando o WHERE em cada uma<br>
+    (célula vazia vira NULL) e projeta as colunas do SELECT;<br>
+    <b>LOAD</b> lê o CSV e registra a tabela no Database
+    <div class="err">✗ Erro de execução: ...</div></div>
+
+  <div class="arrow"><div class="line"></div><div class="head"></div><span class="lbl">Saída</span></div>
+
+  <pre class="left-to-mid tree out">name
+-----
+ana
+bruno
+elisa
+(3 linhas)</pre>
+
+  <div class="all note" style="margin-top:22px; border-top:1px solid #444; padding-top:12px;">
+    <b>src/pipeline.rs</b> — fases 1–3 rodam sobre o texto inteiro; depois, <b>cada statement</b> passa pelas fases 4 e 5
+    antes do próximo. Assim, em <code>LOAD 'users.csv'; FROM users SELECT ...;</code> o esquema de <b>users</b> já
+    existe quando o TypeChecker verifica a consulta. O pipeline para no primeiro erro, prefixado com a fase que o detectou.
+    <div class="legend">
+      <span style="border:2px solid #f2f2f2"></span>fase da entrega parcial
+      <span style="border:2px solid #f0a8ff"></span>fase nova (entrega 2)
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

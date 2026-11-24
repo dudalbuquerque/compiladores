@@ -5,94 +5,138 @@
     {
       "name": "miniSQLParser",
       "summary": {
-        "total": 11,
-        "ll1": 8,
+        "total": 17,
+        "ll1": 13,
         "fixed": 0,
-        "adaptive": 3
+        "adaptive": 4
       },
       "decisions": [
         {
           "decision": 0,
           "rule": "program",
-          "state": 25,
+          "state": 33,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 1,
           "rule": "statement",
-          "state": 32,
+          "state": 40,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 2,
           "rule": "query",
-          "state": 47,
+          "state": 51,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 3,
-          "rule": "query",
-          "state": 54,
+          "rule": "cteClause",
+          "state": 62,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 4,
-          "rule": "selectList",
-          "state": 63,
+          "rule": "cte",
+          "state": 72,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 5,
-          "rule": "selectList",
-          "state": 67,
+          "rule": "cte",
+          "state": 76,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 6,
-          "rule": "expressaoIn",
-          "state": 77,
+          "rule": "queryBody",
+          "state": 88,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 7,
-          "rule": "join",
-          "state": 83,
+          "rule": "queryBody",
+          "state": 95,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 8,
-          "rule": "condition",
-          "state": 99,
-          "canDefer": true,
-          "tier": "adaptive",
-          "reason": "not-disjoint",
-          "probedLookahead": 1
+          "rule": "selectList",
+          "state": 102,
+          "canDefer": false,
+          "tier": "ll1"
         },
         {
           "decision": 9,
-          "rule": "condition",
-          "state": 107,
+          "rule": "selectList",
+          "state": 106,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 10,
+          "rule": "columnRef",
+          "state": 111,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "predicate",
           "probedLookahead": 1
         },
         {
-          "decision": 10,
+          "decision": 11,
+          "rule": "expressaoIn",
+          "state": 121,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 12,
+          "rule": "join",
+          "state": 127,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 13,
           "rule": "condition",
-          "state": 109,
+          "state": 143,
+          "canDefer": true,
+          "tier": "adaptive",
+          "reason": "not-disjoint",
+          "probedLookahead": 1
+        },
+        {
+          "decision": 14,
+          "rule": "condition",
+          "state": 151,
+          "canDefer": true,
+          "tier": "adaptive",
+          "reason": "predicate",
+          "probedLookahead": 1
+        },
+        {
+          "decision": 15,
+          "rule": "condition",
+          "state": 153,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "precedence",
           "probedLookahead": 0
+        },
+        {
+          "decision": 16,
+          "rule": "value",
+          "state": 165,
+          "canDefer": false,
+          "tier": "ll1"
         }
       ]
     }

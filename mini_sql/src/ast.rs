@@ -20,8 +20,27 @@ pub struct Describe {
     pub table: String,
 }
 
+/// `WITH a AS (...), b AS (...) FROM ... ;`
+/// As CTEs vêm antes do corpo e só existem dentro desta query.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Query {
+    pub ctes: Vec<Cte>,
+    pub body: QueryBody,
+}
+
+/// `nome AS (FROM ...)` ou `nome (c1, c2) AS (FROM ...)`.
+/// `columns` é `None` quando não há lista: as colunas vêm do SELECT do corpo.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cte {
+    pub name: String,
+    pub columns: Option<Vec<String>>,
+    pub body: QueryBody,
+}
+
+/// `FROM ... SELECT ... WHERE ...` sem o `;`.
+/// É o corpo da query principal e também o corpo de cada CTE.
+#[derive(Debug, Clone, PartialEq)]
+pub struct QueryBody {
     pub table: String,
     pub joins: Vec<Join>,
     pub select: SelectList,
