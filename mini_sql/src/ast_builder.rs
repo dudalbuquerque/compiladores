@@ -201,9 +201,15 @@ impl AstBuilder { //metodos associados
     }
 
     fn build_join(ctx: &JoinContext<'_>) -> Res<Join> {
+        // O texto do nó vem com os tokens colados ("LEFTOUTERJOINpedidos..."),
+        // então basta olhar a primeira palavra-chave. Sem tipo = INNER.
         let text = ctx.text().to_uppercase();
         let join_type = if text.starts_with("LEFT") {
             JoinType::Left
+        } else if text.starts_with("RIGHT") {
+            JoinType::Right
+        } else if text.starts_with("FULL") {
+            JoinType::Full
         } else {
             JoinType::Inner
         };

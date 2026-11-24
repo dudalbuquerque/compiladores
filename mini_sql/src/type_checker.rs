@@ -207,8 +207,9 @@ fn check_joins(
     for join in joins {
         let join_table = env.lookup(&join.table)?;
 
-        // Aqui você poderá futuramente tratar regras específicas por tipo de Join 
-        // (ex: se for LEFT JOIN, as colunas da direita poderiam aceitar Null, etc.)
+        // O tipo do JOIN (INNER/LEFT/RIGHT/FULL) não muda o esquema: as colunas
+        // são as mesmas, na mesma ordem. Só muda quais linhas existem e onde
+        // aparece NULL, e isso é assunto do interpretador.
 
         // Adiciona as colunas da tabela atual do join ao escopo acumulado,
         // marcadas com o nome dela (`pedidos.id` ≠ `usuarios.id`)

@@ -222,49 +222,54 @@ fn execute_join(
         rows: Vec::new(),
     };
 
-    let mut rows = Vec::new();
-    match join_type {
-        JoinType::Inner => {
-            for left_row in &left_table.rows {
-                for right_row in &right_table.rows {
-                    let mut combined_row = left_row.clone();
-                    combined_row.extend(right_row.clone());
+    // Quais lados mantêm as linhas sem correspondência:
+    //   INNER: nenhum | LEFT: esquerda | RIGHT: direita | FULL: os dois
+    let keep_left = matches!(join_type, JoinType::Left | JoinType::Full);
+    let keep_right = matches!(join_type, JoinType::Right | JoinType::Full);
 
-                    let matches = evaluate_expr(join_cond, &combined_row, &combined_table)? == Some(true);
-                    if matches {
-                        rows.push(combined_row);
-                    }
-                }
+    // Linhas sem par são completadas com strings VAZIAS do outro lado: é a mesma
+    // convenção do CSV, e é ela que o `parse_cell` reconhece como NULL. O texto
+    // "NULL" seria lido como um valor e quebraria `WHERE valor > 100`
+    let left_nulls = vec![String::new(); left_table.columns.len()];
+    let right_nulls = vec![String::new(); right_table.columns.len()];
+
+    // Marca as linhas da direita que casaram com alguma da esquerda (para o RIGHT/FULL).
+    let mut right_matched = vec![false; right_table.rows.len()];
+
+    let mut rows = Vec::new();
+
+    // Nested loop: cada linha da esquerda contra cada linha da direita.
+    for left_row in &left_table.rows {
+        let mut left_matched = false;
+
+        for (j, right_row) in right_table.rows.iter().enumerate() {
+            let mut combined_row = left_row.clone();
+            combined_row.extend(right_row.iter().cloned());
+
+            if evaluate_expr(join_cond, &combined_row, &combined_table)? == Some(true) {
+                rows.push(combined_row);
+                left_matched = true;
+                right_matched[j] = true;
             }
         }
-        JoinType::Left => {
-            // Nova lógica para o LEFT JOIN
-            for left_row in &left_table.rows {
-                let mut matched = false;
 
-                for right_row in &right_table.rows {
-                    let mut combined_row = left_row.clone();
-                    combined_row.extend(right_row.clone());
+        // LEFT/FULL: a linha da esquerda sem par entra com a direita NULL.
+        if keep_left && !left_matched {
+            let mut combined_row = left_row.clone();
+            combined_row.extend(right_nulls.iter().cloned());
+            rows.push(combined_row);
+        }
+    }
 
-                    let matches = evaluate_expr(join_cond, &combined_row, &combined_table)? == Some(true);
-                    if matches {
-                        rows.push(combined_row);
-                        matched = true;
-                    }
-                }
-
-                // Se a linha da esquerda NÃO casou com nenhuma da direita:
-                // Mantemos a linha da esquerda e preenchemos a direita com strings vazias (que viram Null).
-                // Tem que ser a string VAZIA, a mesma convenção do CSV: é ela que o `parse_cell`
-                // reconhece como NULL. O texto "NULL" seria lido como um valor e quebraria
-                // `WHERE valor > 100` ("Valor 'NULL' inválido para a coluna 'valor' (Float)").
-                if !matched {
-                    let mut combined_row = left_row.clone();
-                    for _ in &right_table.columns {
-                        combined_row.push(String::new());
-                    }
-                    rows.push(combined_row);
-                }
+    // RIGHT/FULL: as linhas da direita que não casaram com nenhuma da esquerda
+    // entram no fim, com a esquerda NULL. As colunas continuam na mesma ordem
+    // (esquerda, depois direita), só os valores da esquerda ficam vazios.
+    if keep_right {
+        for (right_row, matched) in right_table.rows.iter().zip(&right_matched) {
+            if !matched {
+                let mut combined_row = left_nulls.clone();
+                combined_row.extend(right_row.iter().cloned());
+                rows.push(combined_row);
             }
         }
     }

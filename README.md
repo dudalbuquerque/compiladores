@@ -16,10 +16,10 @@ Este documento descreve o estado atual do projeto: da definição da gramática 
 | Construção da AST | concluída (`ast_builder.rs`) |
 | Análise semântica | concluída (`type_checker.rs`) |
 | Execução | concluída (`interpreter.rs`) |
-| `INNER JOIN` / `LEFT JOIN` | concluído |
+| `INNER JOIN` / `LEFT JOIN` / `RIGHT JOIN` / `FULL JOIN` | concluído (`OUTER` opcional) |
 | CTEs (`WITH ... AS (...)`) | concluído, com modo `.trace` para visualizar as tabelas temporárias |
 | Nomes qualificados (`tabela.coluna`) | concluído, com detecção de nome ambíguo |
-| Suíte de testes | 207 testes, todos passando |
+| Suíte de testes | 224 testes |
 
 ---
 
@@ -47,6 +47,9 @@ A motivação é que o leitor (e o analisador) conhece a origem dos dados antes 
 | Pertinência | `WHERE type IN ('admin', 'editor');` |
 | Junção | `FROM usuarios JOIN pedidos ON usuarios.id = pedidos.usuario_id SELECT nome, produto;` |
 | Junção externa à esquerda | `FROM usuarios LEFT JOIN pedidos ON ...` (sem correspondência vira NULL) |
+| Junção externa à direita | `FROM usuarios RIGHT JOIN pedidos ON ...` (mantém todas as linhas da direita) |
+| Junção externa completa | `FROM usuarios FULL JOIN pedidos ON ...` (mantém as linhas dos dois lados) |
+| `OUTER` opcional | `LEFT OUTER JOIN`, `RIGHT OUTER JOIN`, `FULL OUTER JOIN` |
 | Junções encadeadas | `FROM a JOIN b ON ... JOIN c ON ...` |
 | Nome qualificado | `usuarios.id`, no `SELECT`, no `WHERE` e no `ON` |
 | CTE | `WITH adultos AS (FROM users SELECT name WHERE age >= 18) FROM adultos SELECT name;` |
@@ -193,7 +196,7 @@ query       : cteClause? queryBody END ;
 cteClause   : WITH cte (COMMA cte)* ;
 cte         : ID (LPAREN ID (COMMA ID)* RPAREN)? AS LPAREN queryBody RPAREN ;
 queryBody   : FROM ID (join)* SELECT selectList (WHERE condition)? ;
-join        : (INNER | LEFT)? JOIN ID ON expr ;
+join        : (INNER | LEFT OUTER? | RIGHT OUTER? | FULL OUTER?)? JOIN ID ON expr ;
 selectList  : columnRef (COMMA columnRef)* | STAR ;
 columnRef   : ID (DOT ID)? ;
 condition   : NOT inner=condition                  # not
@@ -273,7 +276,7 @@ pub struct QueryBody {
 }
 
 pub struct Join      { pub join_type: JoinType, pub table: String, pub condition: Expr }
-pub enum   JoinType  { Inner, Left }
+pub enum   JoinType  { Inner, Left, Right, Full }
 
 pub enum SelectList { Columns(Vec<String>), All }
 
@@ -398,7 +401,7 @@ A lista de colunas `nome (c1, c2) AS (...)` renomeia **posição a posição**, 
 ### 7.4 O interpretador
 
 - **Consulta = seleção + projeção.** Os JOINs são aplicados em sequência (o resultado de um vira a tabela da esquerda do próximo); depois, o `WHERE` filtra as linhas e o `SELECT` escolhe as colunas.
-- **JOIN por laços aninhados** (*nested loop join*): cada linha da esquerda é comparada com cada linha da direita, O(n × m). No `LEFT JOIN`, uma linha da esquerda sem correspondência entra com as colunas da direita vazias.
+- **JOIN por laços aninhados** (*nested loop join*): cada linha da esquerda é comparada com cada linha da direita, O(n × m). No `LEFT JOIN`, uma linha da esquerda sem correspondência entra com as colunas da direita vazias. No `RIGHT JOIN`, cada linha da direita que não casou com nenhuma da esquerda entra no fim, com as colunas da esquerda vazias. O `FULL JOIN` faz as duas coisas. A ordem das colunas é sempre esquerda e depois direita, em qualquer tipo de JOIN, por isso o type checker não precisa distinguir os tipos.
 - **NULL e lógica de três valores.** Uma célula vazia (no CSV ou vinda de um `LEFT JOIN`) vira NULL. Uma comparação com NULL não é verdadeira nem falsa: é *desconhecida* (`Option<bool>` = `None`). `NULL AND falso = falso`; `NULL OR verdadeiro = verdadeiro`; `NOT desconhecido = desconhecido`. Uma linha só entra no resultado se a condição der `Some(true)` — por isso a linha com `credit` vazio não aparece nem em `credit >= 150` nem em `credit < 150`, como no SQL.
 - **Modo `.trace`.** No terminal, `.trace` liga ou desliga a exibição das tabelas temporárias: cada CTE aparece quando é criada (com o conteúdo) e quando é descartada. Consultas sem `WITH` não criam tabelas temporárias e não mostram nada a mais.
 
@@ -410,13 +413,13 @@ A lista de colunas `nome (c1, c2) AS (...)` renomeia **posição a posição**, 
 
 | Arquivo | Testes | Fase | O que valida |
 |---|---|---|---|
-| `parser_success_test.rs` | 40 | sintática | consultas válidas (incluindo `WITH` e `tabela.coluna`) são aceitas sem nenhum erro |
-| `parser_error_test.rs` | 44 | sintática | consultas inválidas são rejeitadas |
-| `ast_test.rs` | 9 | construção da AST | estrutura da AST, CTEs, nomes qualificados; AST não é gerada com erro de sintaxe |
+| `parser_success_test.rs` | 46 | sintática | consultas válidas (incluindo `WITH` e `tabela.coluna`) são aceitas sem nenhum erro |
+| `parser_error_test.rs` | 48 | sintática | consultas inválidas são rejeitadas |
+| `ast_test.rs` | 10 | construção da AST | estrutura da AST, CTEs, nomes qualificados; AST não é gerada com erro de sintaxe |
 | `csv_loader_test.rs` | 1 | carga de dados | o CSV é lido e os tipos das colunas são inferidos |
 | `type_checker_test.rs` | 52 | semântica | tabelas, colunas e tipos; visibilidade e escopo das CTEs; nomes ambíguos |
-| `interpreter_test.rs` | 41 | execução | LOAD, DESCRIBE, WHERE, NULL, JOIN, CTEs, trace |
-| `pipeline_test.rs` | 20 | ponta a ponta | texto SQL até a saída, com cada erro detectado na fase correta |
+| `interpreter_test.rs` | 45 | execução | LOAD, DESCRIBE, WHERE, NULL, JOIN, CTEs, trace |
+| `pipeline_test.rs` | 22 | ponta a ponta | texto SQL até a saída, com cada erro detectado na fase correta |
 
 Nos testes de parser, a maioria dos casos aparece em par: uma versão com palavras-chave em maiúsculas e outra com o sufixo `_minus`, em minúsculas.
 
@@ -434,7 +437,7 @@ Os testes do type checker e do interpretador **montam a AST à mão**, sem passa
 | `test_data/pedidos.csv` | `id` (Int), `usuario_id` (Int), `produto` (String), `valor` (Float) | JOIN e nomes qualificados |
 | `test_data/disciplinas.csv` | `disciplina` (String), `codigo` (String), `creditos` (Int) | testes manuais |
 
-O `users.csv` cobre os quatro tipos da linguagem e tem uma célula de `credit` vazia, usada nos testes de NULL. `usuarios` e `pedidos` têm de propósito uma coluna `id` em comum, e cada um tem uma linha sem correspondência no outro (Carlos não tem pedido; o pedido 104 é de um usuário que não existe), o que diferencia `INNER` de `LEFT JOIN`.
+O `users.csv` cobre os quatro tipos da linguagem e tem uma célula de `credit` vazia, usada nos testes de NULL. `usuarios` e `pedidos` têm de propósito uma coluna `id` em comum, e cada um tem uma linha sem correspondência no outro (Carlos não tem pedido; o pedido 104 é de um usuário que não existe), o que diferencia `INNER`, `LEFT`, `RIGHT` e `FULL JOIN`.
 
 ### Critério de aceitação nos testes de parser
 
@@ -588,9 +591,10 @@ No Git Bash, use barra normal no caminho — a contrabarra é interpretada como 
 
 ## 10. Limitações conhecidas
 
+- **`OUTER` virou palavra reservada.** Junto com `RIGHT` e `FULL`, não pode mais ser usado como nome de tabela ou coluna.
 - **Sem apelidos de tabela.** `FROM users JOIN users ...` é detectado e recusado (`a tabela 'users' aparece mais de uma vez`), mas não é suportado.
 - **`ON` com uma única comparação.** A regra é `ON expr`, e não `ON condition`; não é possível escrever `AND` no `ON`.
-- **Sem `IS NULL`.** Não há como selecionar as linhas sem correspondência de um `LEFT JOIN`.
+- **Sem `IS NULL`.** Não há como selecionar as linhas sem correspondência de um `LEFT`, `RIGHT` ou `FULL JOIN`.
 - **Mensagens de erro de sintaxe em inglês.** São as mensagens do ANTLR (`missing ';' at '<EOF>'`), com os nomes internos dos tokens; só a linha e a coluna são formatadas por nós.
 - **Leitura de CSV simplificada.** As linhas são separadas por `,` sem tratar aspas: um valor como `"Silva, Ana"` quebra a linha.
 - **JOIN O(n × m).** O *nested loop join* compara todas as linhas com todas; suficiente para o tamanho das tabelas do projeto.

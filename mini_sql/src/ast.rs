@@ -58,6 +58,8 @@ pub struct Join {
 pub enum JoinType {
     Inner,
     Left,
+    Right,
+    Full,
 }
 
 #[derive(Debug, Clone, PartialEq)]
