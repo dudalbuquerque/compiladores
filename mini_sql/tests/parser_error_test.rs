@@ -276,3 +276,26 @@ fn test_tabela_qualificada_no_from() {
     // só colunas podem ter prefixo; o nome da tabela no FROM é um ID simples
     assert!(parse_error("FROM banco.users SELECT name;"));
 }
+
+// RIGHT / FULL / OUTER
+
+#[test]
+fn test_outer_sem_tipo_de_join() {
+    // OUTER sozinho não é um tipo de JOIN: precisa de LEFT, RIGHT ou FULL antes
+    assert!(parse_error("FROM usuarios OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_inner_outer_join() {
+    assert!(parse_error("FROM usuarios INNER OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_dois_tipos_de_join() {
+    assert!(parse_error("FROM usuarios FULL LEFT JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_right_join_sem_on() {
+    assert!(parse_error("FROM usuarios RIGHT JOIN pedidos SELECT *;"));
+}

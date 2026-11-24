@@ -214,3 +214,36 @@ fn cte_sobre_left_join_com_lista_de_colunas() {
     // Carlos entra em `compras` (LEFT JOIN) com valor NULL e sai em `caras`
     assert_eq!(out[2..], ["nome  | produto", "------+--------", "Ana   | Teclado", "Bruno | Monitor", "(2 linhas)"][..]);
 }
+
+#[test]
+fn right_join_ponta_a_ponta() {
+    let out = run(&format!(
+        "{LOAD_JOIN} FROM usuarios RIGHT JOIN pedidos ON usuarios.id = usuario_id SELECT produto WHERE valor > 100;"
+    ))
+    .unwrap();
+
+    // o Headset entra mesmo sem usuário correspondente
+    assert_eq!(out[2..], ["produto", "-------", "Teclado", "Monitor", "Headset", "(3 linhas)"][..]);
+}
+
+#[test]
+fn full_outer_join_ponta_a_ponta() {
+    let out = run(&format!(
+        "{LOAD_JOIN} FROM usuarios FULL OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT nome, produto;"
+    ))
+    .unwrap();
+
+    assert_eq!(
+        out[2..],
+        [
+            "nome   | produto",
+            "-------+--------",
+            "Ana    | Teclado",
+            "Ana    | Mouse",
+            "Bruno  | Monitor",
+            "Carlos |",
+            "       | Headset",
+            "(5 linhas)",
+        ][..]
+    );
+}

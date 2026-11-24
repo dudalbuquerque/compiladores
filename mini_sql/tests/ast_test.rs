@@ -202,3 +202,19 @@ fn test_ast_nao_e_gerada_com_erro_de_sintaxe() {
 
     assert!(AstBuilder::parse_sql("FROM users SELECT name").is_err(), "sem ';' deveria ser erro");
 }
+
+#[test]
+fn test_ast_tipos_de_join() {
+    let query = only_query(
+        "FROM a JOIN b ON a.x = b.x INNER JOIN c ON c.x = a.x LEFT OUTER JOIN d ON d.x = a.x \
+         RIGHT JOIN e ON e.x = a.x FULL OUTER JOIN f ON f.x = a.x SELECT *;",
+    );
+
+    let tipos: Vec<JoinType> = query.body.joins.iter().map(|j| j.join_type.clone()).collect();
+    assert_eq!(
+        tipos,
+        vec![JoinType::Inner, JoinType::Inner, JoinType::Left, JoinType::Right, JoinType::Full]
+    );
+    let tabelas: Vec<&str> = query.body.joins.iter().map(|j| j.table.as_str()).collect();
+    assert_eq!(tabelas, vec!["b", "c", "d", "e", "f"]);
+}

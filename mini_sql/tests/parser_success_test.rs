@@ -271,3 +271,35 @@ fn test_coluna_qualificada_minus() {
 fn test_coluna_qualificada_no_in() {
     assert!(parse("FROM users SELECT name WHERE users.type IN ('admin', 'editor');"));
 }
+
+// RIGHT e FULL JOIN (com e sem OUTER)
+
+#[test]
+fn test_right_join() {
+    assert!(parse("FROM usuarios RIGHT JOIN pedidos ON usuarios.id = usuario_id SELECT nome, produto;"));
+}
+
+#[test]
+fn test_right_outer_join_minus() {
+    assert!(parse("from usuarios right outer join pedidos on usuarios.id = usuario_id select nome, produto;"));
+}
+
+#[test]
+fn test_full_join() {
+    assert!(parse("FROM usuarios FULL JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_full_outer_join_minus() {
+    assert!(parse("from usuarios full outer join pedidos on usuarios.id = usuario_id select *;"));
+}
+
+#[test]
+fn test_left_outer_join() {
+    assert!(parse("FROM usuarios LEFT OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT nome;"));
+}
+
+#[test]
+fn test_joins_encadeados_de_tipos_diferentes() {
+    assert!(parse("FROM a JOIN b ON a.x = b.x LEFT JOIN c ON c.y = b.y RIGHT JOIN d ON d.z = c.z FULL JOIN e ON e.w = d.w SELECT *;"));
+}

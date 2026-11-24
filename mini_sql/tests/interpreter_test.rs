@@ -549,3 +549,83 @@ fn join_entre_cte_e_tabela_com_prefixo() {
     // uma linha por pessoa (antes, `ON name = name` dava produto cartesiano)
     assert_eq!(result.rows, vec![vec!["ana", "20"], vec!["bruno", "17"]]);
 }
+
+// ----- RIGHT e FULL JOIN ---------------------------------------------------
+
+#[test]
+fn right_join_mantem_linhas_da_direita_sem_correspondencia() {
+    // FROM usuarios RIGHT JOIN pedidos ON usuarios.id = usuario_id SELECT nome, produto;
+    let query = simple(body(
+        "usuarios",
+        vec![join(JoinType::Right, "pedidos", "usuarios.id", "usuario_id")],
+        columns(&["nome", "produto"]),
+        None,
+    ));
+    let result = execute_query(&query, &db_all()).unwrap();
+
+    // Carlos (sem pedido) some; o pedido 104 (usuário 4 não existe) entra com nome NULL
+    assert_eq!(
+        result.rows,
+        vec![vec!["Ana", "Teclado"], vec!["Ana", "Mouse"], vec!["Bruno", "Monitor"], vec!["", "Headset"]]
+    );
+}
+
+#[test]
+fn full_join_mantem_os_dois_lados() {
+    // FROM usuarios FULL JOIN pedidos ON usuarios.id = usuario_id SELECT nome, produto;
+    let query = simple(body(
+        "usuarios",
+        vec![join(JoinType::Full, "pedidos", "usuarios.id", "usuario_id")],
+        columns(&["nome", "produto"]),
+        None,
+    ));
+    let result = execute_query(&query, &db_all()).unwrap();
+
+    assert_eq!(
+        result.rows,
+        vec![
+            vec!["Ana", "Teclado"],
+            vec!["Ana", "Mouse"],
+            vec!["Bruno", "Monitor"],
+            vec!["Carlos", ""],
+            vec!["", "Headset"],
+        ]
+    );
+}
+
+#[test]
+fn right_join_equivale_ao_left_join_invertido() {
+    // A RIGHT JOIN B tem as mesmas linhas que B LEFT JOIN A (só a ordem das colunas muda)
+    let right = simple(body(
+        "usuarios",
+        vec![join(JoinType::Right, "pedidos", "usuarios.id", "usuario_id")],
+        columns(&["nome", "produto"]),
+        None,
+    ));
+    let left = simple(body(
+        "pedidos",
+        vec![join(JoinType::Left, "usuarios", "usuarios.id", "usuario_id")],
+        columns(&["nome", "produto"]),
+        None,
+    ));
+    let db = db_all();
+    let mut a = execute_query(&right, &db).unwrap().rows;
+    let mut b = execute_query(&left, &db).unwrap().rows;
+    a.sort();
+    b.sort();
+    assert_eq!(a, b);
+}
+
+#[test]
+fn where_sobre_coluna_nula_do_right_join_nao_quebra() {
+    // O pedido 104 tem `idade` NULL: NULL < 30 é desconhecido e a linha sai
+    let query = simple(body(
+        "usuarios",
+        vec![join(JoinType::Right, "pedidos", "usuarios.id", "usuario_id")],
+        columns(&["produto"]),
+        Some(cmp(id("idade"), Operator::Less, Value::Int(30))),
+    ));
+    let result = execute_query(&query, &db_all()).unwrap();
+
+    assert_eq!(first_column(&result), vec!["Teclado", "Mouse"]);
+}
