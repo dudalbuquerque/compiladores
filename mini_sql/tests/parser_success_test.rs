@@ -1,3 +1,4 @@
+use antlr4_runtime::parser::Parser;
 use antlr4_runtime::{CommonTokenStream, InputStream};
 
 use mini_sql::mini_sql_lexer::MiniSqlLexer;
@@ -9,7 +10,12 @@ fn parse(input: &str) -> bool {
     let tokens = CommonTokenStream::new(lexer);
     let mut parser = MiniSqlParser::new(tokens);
 
-    parser.program().is_ok()
+    // `program()` devolve Ok mesmo quando houve erro de sintaxe: o parser do
+    // ANTLR se recupera (insere/descarta tokens) e segue. Por isso também
+    // exigimos zero erros registrados; sem isso, este teste nunca falharia
+    // (`FROM users SELECT;` dava Ok).
+    let ok = parser.program().is_ok();
+    ok && parser.number_of_syntax_errors() == 0
 }
 
 // users
@@ -111,13 +117,13 @@ fn test_select_string_and_float_minus() {
 
 #[test]
 fn test_negative_numbers() {
-    assert!(parse("FROM users SELECT age WHERE credit >= -10.5"));
+    assert!(parse("FROM users SELECT age WHERE credit >= -10.5;"));
 }
 
 
 #[test]
 fn test_negative_numbers_minus() {
-    assert!(parse("from users select age where credit >= -10.5"));
+    assert!(parse("from users select age where credit >= -10.5;"));
 }
 
 #[test]
@@ -205,4 +211,95 @@ fn test_multiple_statement_types() {
         FROM users SELECT name;
     ";
     assert!(parse(input));
+}
+
+// CTEs (WITH)
+
+#[test]
+fn test_cte_simples() {
+    assert!(parse("WITH adultos AS (FROM users SELECT name WHERE age >= 18) FROM adultos SELECT name;"));
+}
+
+#[test]
+fn test_cte_simples_minus() {
+    assert!(parse("with adultos as (from users select name where age >= 18) from adultos select name;"));
+}
+
+#[test]
+fn test_cte_com_lista_de_colunas() {
+    assert!(parse("WITH adultos (nome, anos) AS (FROM users SELECT name, age) FROM adultos SELECT nome;"));
+}
+
+#[test]
+fn test_cte_com_lista_de_colunas_minus() {
+    assert!(parse("with adultos (nome, anos) as (from users select name, age) from adultos select nome;"));
+}
+
+#[test]
+fn test_varias_ctes() {
+    assert!(parse("WITH a AS (FROM users SELECT name), b AS (FROM a SELECT name) FROM b SELECT name;"));
+}
+
+#[test]
+fn test_varias_ctes_minus() {
+    assert!(parse("with a as (from users select name), b as (from a select name) from b select name;"));
+}
+
+#[test]
+fn test_cte_com_join() {
+    assert!(parse("WITH c AS (FROM usuarios JOIN pedidos ON usuarios.id = usuario_id SELECT *) FROM c SELECT nome;"));
+}
+
+#[test]
+fn test_cte_com_join_minus() {
+    assert!(parse("with c as (from usuarios join pedidos on usuarios.id = usuario_id select *) from c select nome;"));
+}
+
+// Nomes qualificados (tabela.coluna)
+
+#[test]
+fn test_coluna_qualificada() {
+    assert!(parse("FROM usuarios JOIN pedidos ON usuarios.id = pedidos.usuario_id SELECT usuarios.nome WHERE pedidos.valor > 100;"));
+}
+
+#[test]
+fn test_coluna_qualificada_minus() {
+    assert!(parse("from usuarios join pedidos on usuarios.id = pedidos.usuario_id select usuarios.nome where pedidos.valor > 100;"));
+}
+
+#[test]
+fn test_coluna_qualificada_no_in() {
+    assert!(parse("FROM users SELECT name WHERE users.type IN ('admin', 'editor');"));
+}
+
+// RIGHT e FULL JOIN (com e sem OUTER)
+
+#[test]
+fn test_right_join() {
+    assert!(parse("FROM usuarios RIGHT JOIN pedidos ON usuarios.id = usuario_id SELECT nome, produto;"));
+}
+
+#[test]
+fn test_right_outer_join_minus() {
+    assert!(parse("from usuarios right outer join pedidos on usuarios.id = usuario_id select nome, produto;"));
+}
+
+#[test]
+fn test_full_join() {
+    assert!(parse("FROM usuarios FULL JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_full_outer_join_minus() {
+    assert!(parse("from usuarios full outer join pedidos on usuarios.id = usuario_id select *;"));
+}
+
+#[test]
+fn test_left_outer_join() {
+    assert!(parse("FROM usuarios LEFT OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT nome;"));
+}
+
+#[test]
+fn test_joins_encadeados_de_tipos_diferentes() {
+    assert!(parse("FROM a JOIN b ON a.x = b.x LEFT JOIN c ON c.y = b.y RIGHT JOIN d ON d.z = c.z FULL JOIN e ON e.w = d.w SELECT *;"));
 }

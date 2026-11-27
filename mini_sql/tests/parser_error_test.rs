@@ -219,3 +219,83 @@ fn test_load_missing_string() {
 fn test_describe_missing_table() {
     assert!(parse_error("DESCRIBE ;"));
 }
+
+// CTEs (WITH)
+
+#[test]
+fn test_cte_sem_as() {
+    assert!(parse_error("WITH a (FROM users SELECT name) FROM a SELECT name;"));
+}
+
+#[test]
+fn test_cte_sem_parenteses() {
+    assert!(parse_error("WITH a AS FROM users SELECT name FROM a SELECT name;"));
+}
+
+#[test]
+fn test_cte_sem_corpo_principal() {
+    assert!(parse_error("WITH a AS (FROM users SELECT name);"));
+}
+
+#[test]
+fn test_cte_com_ponto_e_virgula_dentro() {
+    // o `;` fecha a query inteira, não a CTE
+    assert!(parse_error("WITH a AS (FROM users SELECT name;) FROM a SELECT name;"));
+}
+
+#[test]
+fn test_cte_com_lista_de_colunas_vazia() {
+    assert!(parse_error("WITH a () AS (FROM users SELECT name) FROM a SELECT name;"));
+}
+
+#[test]
+fn test_ctes_sem_virgula() {
+    assert!(parse_error("WITH a AS (FROM users SELECT name) b AS (FROM a SELECT name) FROM b SELECT name;"));
+}
+
+#[test]
+fn test_with_recursive_nao_existe() {
+    // RECURSIVE foi retirado da gramática (precisaria de UNION)
+    assert!(parse_error("WITH RECURSIVE a AS (FROM users SELECT name) FROM a SELECT name;"));
+}
+
+// Nomes qualificados (tabela.coluna)
+
+#[test]
+fn test_coluna_qualificada_sem_coluna() {
+    assert!(parse_error("FROM users SELECT users. WHERE age > 1;"));
+}
+
+#[test]
+fn test_coluna_qualificada_com_tres_partes() {
+    assert!(parse_error("FROM users SELECT banco.users.name;"));
+}
+
+#[test]
+fn test_tabela_qualificada_no_from() {
+    // só colunas podem ter prefixo; o nome da tabela no FROM é um ID simples
+    assert!(parse_error("FROM banco.users SELECT name;"));
+}
+
+// RIGHT / FULL / OUTER
+
+#[test]
+fn test_outer_sem_tipo_de_join() {
+    // OUTER sozinho não é um tipo de JOIN: precisa de LEFT, RIGHT ou FULL antes
+    assert!(parse_error("FROM usuarios OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_inner_outer_join() {
+    assert!(parse_error("FROM usuarios INNER OUTER JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_dois_tipos_de_join() {
+    assert!(parse_error("FROM usuarios FULL LEFT JOIN pedidos ON usuarios.id = usuario_id SELECT *;"));
+}
+
+#[test]
+fn test_right_join_sem_on() {
+    assert!(parse_error("FROM usuarios RIGHT JOIN pedidos SELECT *;"));
+}

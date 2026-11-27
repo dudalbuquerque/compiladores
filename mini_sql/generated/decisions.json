@@ -5,80 +5,159 @@
     {
       "name": "miniSQLParser",
       "summary": {
-        "total": 9,
-        "ll1": 6,
+        "total": 20,
+        "ll1": 16,
         "fixed": 0,
-        "adaptive": 3
+        "adaptive": 4
       },
       "decisions": [
         {
           "decision": 0,
           "rule": "program",
-          "state": 23,
+          "state": 33,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 1,
           "rule": "statement",
-          "state": 30,
+          "state": 40,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 2,
           "rule": "query",
-          "state": 46,
+          "state": 51,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 3,
-          "rule": "selectList",
-          "state": 55,
+          "rule": "cteClause",
+          "state": 62,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 4,
-          "rule": "selectList",
-          "state": 59,
+          "rule": "cte",
+          "state": 72,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 5,
-          "rule": "expressaoIn",
-          "state": 69,
+          "rule": "cte",
+          "state": 76,
           "canDefer": false,
           "tier": "ll1"
         },
         {
           "decision": 6,
-          "rule": "condition",
-          "state": 83,
-          "canDefer": true,
-          "tier": "adaptive",
-          "reason": "not-disjoint",
-          "probedLookahead": 1
+          "rule": "queryBody",
+          "state": 88,
+          "canDefer": false,
+          "tier": "ll1"
         },
         {
           "decision": 7,
-          "rule": "condition",
-          "state": 91,
+          "rule": "queryBody",
+          "state": 95,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 8,
+          "rule": "selectList",
+          "state": 102,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 9,
+          "rule": "selectList",
+          "state": 106,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 10,
+          "rule": "columnRef",
+          "state": 111,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "predicate",
           "probedLookahead": 1
         },
         {
-          "decision": 8,
+          "decision": 11,
+          "rule": "expressaoIn",
+          "state": 121,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 12,
+          "rule": "join",
+          "state": 129,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 13,
+          "rule": "join",
+          "state": 133,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 14,
+          "rule": "join",
+          "state": 137,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 15,
+          "rule": "join",
+          "state": 139,
+          "canDefer": false,
+          "tier": "ll1"
+        },
+        {
+          "decision": 16,
           "rule": "condition",
-          "state": 93,
+          "state": 155,
+          "canDefer": true,
+          "tier": "adaptive",
+          "reason": "not-disjoint",
+          "probedLookahead": 1
+        },
+        {
+          "decision": 17,
+          "rule": "condition",
+          "state": 163,
+          "canDefer": true,
+          "tier": "adaptive",
+          "reason": "predicate",
+          "probedLookahead": 1
+        },
+        {
+          "decision": 18,
+          "rule": "condition",
+          "state": 165,
           "canDefer": true,
           "tier": "adaptive",
           "reason": "precedence",
           "probedLookahead": 0
+        },
+        {
+          "decision": 19,
+          "rule": "value",
+          "state": 177,
+          "canDefer": false,
+          "tier": "ll1"
         }
       ]
     }

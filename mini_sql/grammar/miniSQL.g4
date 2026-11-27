@@ -23,15 +23,33 @@ load: LOAD STRING END;
 // permite descrever infos do arquivo csv/tabela
 describe: DESCRIBE ID END ;
 
-query: FROM ID SELECT selectList (WHERE condition)? END ;
+// CTEs
+query: cteClause? queryBody END ;
 
+// O COMMA SIGNIFICA QUE PODE TER UMA VÍRGULA SEGUIDA DE OUTRAS CTEs, dentro do mesmo With
+cteClause: WITH cte (COMMA cte)* ;
+
+// Ex: cte_nome AS (FROM ...) ou cte_nome (col1, col2) AS (FROM ...)
+cte: ID (LPAREN ID (COMMA ID)* RPAREN)? AS LPAREN queryBody RPAREN ;
+
+// Corpo principal da consulta sem o ; final, para poder ser reutilizado dentro de CTEs
+queryBody: FROM ID (join)* SELECT selectList (WHERE condition)? ;
 
 // Permite selecionar múltiplos campos (ex: a, b, c) ou '*'
-selectList : ID (',' ID)*
+selectList : columnRef (COMMA columnRef)*
            | STAR ;
+
+// Referência a uma coluna: `coluna` ou `tabela.coluna`.
+// O prefixo é necessário quando duas tabelas da query (FROM/JOIN/CTE) têm
+// uma coluna com o mesmo nome, ex.: `usuarios.id = pedidos.usuario_id`.
+columnRef : ID (DOT ID)? ;
 
 // permite IN no WHERE
 expressaoIn : value IN LPAREN value (COMMA value)* RPAREN ;
+
+// joins encadeados (ex: JOIN a ON a.id = b.id JOIN c ON c.id = b.id)
+// Sem tipo = INNER. O OUTER é opcional e não muda nada: LEFT JOIN == LEFT OUTER JOIN.
+join : (INNER | LEFT OUTER? | RIGHT OUTER? | FULL OUTER?)? JOIN ID ON expr ;
 
 
 // Suporta condições encadeadas por AND / OR (ex: a = 1 AND b > 2)
@@ -52,7 +70,7 @@ condition : NOT inner=condition                  # not
 expr : left=value op=(EQUAL | NOT_EQUAL | LESS | LESS_EQUAL | GREATER | GREATER_EQUAL) right=value;
 
 
-value: ID
+value: columnRef
      | INT
      | FLOAT
      | STRING
@@ -67,8 +85,17 @@ value: ID
 SELECT : 'SELECT' | 'select';
 WHERE : 'WHERE' | 'where';
 FROM : 'FROM' | 'from';
+JOIN : 'JOIN' | 'join';
+INNER : 'INNER' | 'inner';
+LEFT : 'LEFT' | 'left';
+RIGHT : 'RIGHT' | 'right';
+FULL : 'FULL' | 'full';
+OUTER : 'OUTER' | 'outer';
+ON : 'ON' | 'on';
 LOAD : 'LOAD' | 'load';
 DESCRIBE : 'DESCRIBE' | 'describe' | 'DESC' | 'desc';
+WITH : 'WITH' | 'with';
+AS : 'AS' | 'as';
 
 // operadores lógicos, precisam estar antes do ID por regra do lexer
 AND : 'AND' | 'and';
@@ -95,6 +122,7 @@ GREATER_EQUAL : '>=' ;
 
 // pontuação
 COMMA  : ',' ;
+DOT    : '.' ;
 STAR   : '*' ;
 LPAREN : '(' ;
 RPAREN : ')' ;

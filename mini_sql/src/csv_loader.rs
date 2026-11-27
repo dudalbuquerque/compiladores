@@ -72,6 +72,8 @@ pub fn load_csv(path_csv: &str) -> Result<Table, Box<dyn Error>> {
             Column {
                 name: name.clone(),
                 data_type,
+                // a origem só é marcada dentro de uma query (`table::with_source`)
+                source: None,
             }
         })
         .collect();
