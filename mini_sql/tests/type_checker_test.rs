@@ -69,7 +69,7 @@ fn query_valida_com_todas_as_colunas() {
 
 #[test]
 fn query_valida_com_colunas() {
-    assert_ok(query("users", SelectList::Columns(vec!["name".into(), "credit".into()]), None));
+       assert_ok(query("users", columns(&["name", "credit"]), None));
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn tabela_inexistente() {
 #[test]
 fn coluna_inexistente_no_select() {
     assert_err(
-        query("users", SelectList::Columns(vec!["name".into(), "email".into()]), None),
+        query("users", columns(&["name", "email"]), None),
         "Coluna 'email' não existe",
     );
 }
@@ -213,7 +213,12 @@ fn load_com_nome_que_nao_vira_identificador() {
 // ----- auxiliares para CTEs e JOINs --------------------------------------
 
 fn columns(names: &[&str]) -> SelectList {
-    SelectList::Columns(names.iter().map(|n| n.to_string()).collect())
+    SelectList::Items(
+        names
+            .iter()
+            .map(|n| SelectItem::Column { name: n.to_string(), alias: None })
+            .collect(),
+    )
 }
 
 /// `FROM table [joins] SELECT select [WHERE condition]`
@@ -540,5 +545,298 @@ fn mesma_tabela_duas_vezes_e_ambigua_mesmo_com_prefixo() {
     assert_err(
         select(body("users", vec![join("users", "users.name", "users.name")], columns(&["age"]), None)),
         "a tabela 'users' aparece mais de uma vez",
+    );
+}
+
+// ----- Funções de agregação ------------------------------------------------
+
+fn agg(func: AggregateFunc, column: Option<&str>, alias: Option<&str>) -> SelectItem {
+    SelectItem::Aggregate {
+        func,
+        arg: match column {
+            Some(name) => AggArg::Column(name.to_string()),
+            None => AggArg::Star,
+        },
+        alias: alias.map(|a| a.to_string()),
+    }
+}
+
+fn col_item(name: &str, alias: Option<&str>) -> SelectItem {
+    SelectItem::Column { name: name.to_string(), alias: alias.map(|a| a.to_string()) }
+}
+
+fn items(list: Vec<SelectItem>) -> SelectList {
+    SelectList::Items(list)
+}
+
+#[test]
+fn count_star_e_valido() {
+    assert_ok(query("users", items(vec![agg(AggregateFunc::Count, None, None)]), None));
+}
+
+#[test]
+fn count_de_qualquer_tipo_e_valido() {
+    // COUNT(coluna) aceita texto, número e booleano
+    for column in ["name", "age", "credit", "active"] {
+        assert_ok(query("users", items(vec![agg(AggregateFunc::Count, Some(column), None)]), None));
+    }
+}
+
+#[test]
+fn sum_avg_min_max_em_coluna_numerica() {
+    assert_ok(query(
+        "users",
+        items(vec![
+            agg(AggregateFunc::Sum, Some("age"), None),
+            agg(AggregateFunc::Avg, Some("credit"), None),
+            agg(AggregateFunc::Min, Some("age"), None),
+            agg(AggregateFunc::Max, Some("credit"), None),
+        ]),
+        None,
+    ));
+}
+
+#[test]
+fn sum_de_coluna_de_texto_e_erro() {
+    assert_err(
+        query("users", items(vec![agg(AggregateFunc::Sum, Some("name"), None)]), None),
+        "exige coluna numérica",
+    );
+}
+
+#[test]
+fn avg_de_boolean_e_erro() {
+    assert_err(
+        query("users", items(vec![agg(AggregateFunc::Avg, Some("active"), None)]), None),
+        "exige coluna numérica",
+    );
+}
+
+#[test]
+fn star_so_vale_para_count() {
+    for func in [AggregateFunc::Sum, AggregateFunc::Avg, AggregateFunc::Min, AggregateFunc::Max] {
+        assert_err(query("users", items(vec![agg(func, None, None)]), None), "só COUNT aceita *");
+    }
+}
+
+#[test]
+fn agregacao_de_coluna_inexistente() {
+    assert_err(
+        query("users", items(vec![agg(AggregateFunc::Max, Some("salary"), None)]), None),
+        "Coluna 'salary' não existe",
+    );
+}
+
+#[test]
+fn misturar_coluna_e_agregacao_e_erro() {
+    assert_err(
+        query("users", items(vec![col_item("name", None), agg(AggregateFunc::Avg, Some("age"), None)]), None),
+        "GROUP BY",
+    );
+}
+
+#[test]
+fn misturar_agregacao_e_coluna_em_qualquer_ordem() {
+    assert_err(
+        query("users", items(vec![agg(AggregateFunc::Count, None, None), col_item("name", None)]), None),
+        "GROUP BY",
+    );
+}
+
+#[test]
+fn varias_agregacoes_sem_coluna_comum_e_valido() {
+    assert_ok(query(
+        "users",
+        items(vec![agg(AggregateFunc::Count, None, Some("total")), agg(AggregateFunc::Avg, Some("age"), Some("media"))]),
+        None,
+    ));
+}
+
+#[test]
+fn agregacao_respeita_o_where() {
+    // o WHERE continua sendo verificado
+    assert_ok(query(
+        "users",
+        items(vec![agg(AggregateFunc::Count, None, None)]),
+        Some(cmp(id("age"), Operator::GreaterEqual, Value::Int(18))),
+    ));
+    assert_err(
+        query(
+            "users",
+            items(vec![agg(AggregateFunc::Count, None, None)]),
+            Some(cmp(id("age"), Operator::Equal, string("vinte"))),
+        ),
+        "Tipos incompatíveis",
+    );
+}
+
+// ----- agregações com JOIN e nomes qualificados ------------------------------
+
+#[test]
+fn agregacao_com_coluna_qualificada_em_join() {
+    assert_ok(select(body(
+        "usuarios",
+        vec![join("pedidos", "usuarios.id", "usuario_id")],
+        items(vec![agg(AggregateFunc::Sum, Some("pedidos.valor"), Some("soma"))]),
+        None,
+    )));
+}
+
+#[test]
+fn agregacao_com_coluna_ambigua_em_join() {
+    // `id` existe em usuarios e em pedidos
+    assert_err(
+        select(body(
+            "usuarios",
+            vec![join("pedidos", "usuarios.id", "usuario_id")],
+            items(vec![agg(AggregateFunc::Count, Some("id"), None)]),
+            None,
+        )),
+        "Coluna 'id' é ambígua",
+    );
+}
+
+#[test]
+fn count_star_em_join_nao_tem_ambiguidade() {
+    assert_ok(select(body(
+        "usuarios",
+        vec![join("pedidos", "usuarios.id", "usuario_id")],
+        items(vec![agg(AggregateFunc::Count, None, None)]),
+        None,
+    )));
+}
+
+// ----- alias e tipo do resultado ---------------------------------------------
+
+#[test]
+fn alias_em_coluna_comum_e_agregacao() {
+    assert_ok(query("users", items(vec![col_item("name", Some("n")), col_item("age", Some("idade"))]), None));
+}
+
+#[test]
+fn tipo_do_count_e_int() {
+    // WITH t AS (FROM users SELECT COUNT(*) AS total) FROM t SELECT total WHERE total = 'x';
+    assert_err(
+        with(
+            vec![cte("t", None, body("users", vec![], items(vec![agg(AggregateFunc::Count, None, Some("total"))]), None))],
+            body("t", vec![], columns(&["total"]), Some(cmp(id("total"), Operator::Equal, string("x")))),
+        ),
+        "a coluna 'total' é Int",
+    );
+}
+
+#[test]
+fn tipo_do_sum_e_o_da_coluna() {
+    // SUM(age) continua Int
+    assert_err(
+        with(
+            vec![cte("t", None, body("users", vec![], items(vec![agg(AggregateFunc::Sum, Some("age"), Some("soma"))]), None))],
+            body("t", vec![], columns(&["soma"]), Some(cmp(id("soma"), Operator::Equal, string("x")))),
+        ),
+        "a coluna 'soma' é Int",
+    );
+}
+
+#[test]
+fn tipo_do_avg_e_float() {
+    // AVG(age) é Float, embora age seja Int
+    assert_err(
+        with(
+            vec![cte("t", None, body("users", vec![], items(vec![agg(AggregateFunc::Avg, Some("age"), Some("media"))]), None))],
+            body("t", vec![], columns(&["media"]), Some(cmp(id("media"), Operator::Equal, string("x")))),
+        ),
+        "a coluna 'media' é Float",
+    );
+}
+
+// ----- agregações dentro de CTEs ----------------------------------------------
+
+#[test]
+fn cte_com_agregacao_e_lida_pelo_alias() {
+    // WITH t AS (FROM users SELECT COUNT(*) AS total) FROM t SELECT total WHERE total > 3;
+    assert_ok(with(
+        vec![cte("t", None, body("users", vec![], items(vec![agg(AggregateFunc::Count, None, Some("total"))]), None))],
+        body("t", vec![], columns(&["total"]), Some(cmp(id("total"), Operator::Greater, Value::Int(3)))),
+    ));
+}
+
+#[test]
+fn cte_com_agregacao_sem_alias_nao_tem_o_nome_que_o_usuario_imagina() {
+    // sem alias a coluna se chama "COUNT(*)", então `total` não existe
+    assert_err(
+        with(
+            vec![cte("t", None, body("users", vec![], items(vec![agg(AggregateFunc::Count, None, None)]), None))],
+            body("t", vec![], columns(&["total"]), None),
+        ),
+        "Coluna 'total' não existe",
+    );
+}
+
+#[test]
+fn cte_com_agregacao_e_lista_de_colunas() {
+    // WITH t (total) AS (FROM users SELECT COUNT(*)) FROM t SELECT total;
+    assert_ok(with(
+        vec![cte("t", Some(&["total"]), body("users", vec![], items(vec![agg(AggregateFunc::Count, None, None)]), None))],
+        body("t", vec![], columns(&["total"]), None),
+    ));
+}
+
+#[test]
+fn cte_com_dois_aliases_iguais_e_erro() {
+    assert_err(
+        with(
+            vec![cte(
+                "t",
+                None,
+                body(
+                    "users",
+                    vec![],
+                    items(vec![agg(AggregateFunc::Count, None, Some("x")), agg(AggregateFunc::Sum, Some("age"), Some("x"))]),
+                    None,
+                ),
+            )],
+            body("t", vec![], columns(&["x"]), None),
+        ),
+        "produz a coluna 'x' mais de uma vez",
+    );
+}
+
+#[test]
+fn cte_com_alias_em_coluna_comum() {
+    let renamed = || cte("t", None, body("users", vec![], items(vec![col_item("name", Some("n"))]), None));
+
+    assert_ok(with(vec![renamed()], body("t", vec![], columns(&["n"]), None)));
+    // o nome original deixa de existir
+    assert_err(with(vec![renamed()], body("t", vec![], columns(&["name"]), None)), "Coluna 'name' não existe");
+}
+
+#[test]
+fn query_principal_pode_agregar_sobre_cte() {
+    // WITH adultos AS (...) FROM adultos SELECT AVG(age) AS media;
+    assert_ok(with(
+        vec![cte("adultos", None, adultos_body())],
+        body("adultos", vec![], items(vec![agg(AggregateFunc::Avg, Some("age"), Some("media"))]), None),
+    ));
+}
+
+#[test]
+fn erro_de_agregacao_dentro_da_cte_diz_qual_cte() {
+    assert_err(
+        with(
+            vec![cte("t", None, body("users", vec![], items(vec![agg(AggregateFunc::Sum, Some("name"), None)]), None))],
+            body("t", vec![], SelectList::All, None),
+        ),
+        "Na CTE 't': SUM(name) exige coluna numérica",
+    );
+}
+
+#[test]
+fn mistura_dentro_da_cte_diz_qual_cte() {
+    assert_err(
+        with(
+            vec![cte("t", None, body("users", vec![], items(vec![col_item("name", None), agg(AggregateFunc::Count, None, None)]), None))],
+            body("t", vec![], SelectList::All, None),
+        ),
+        "Na CTE 't': Não é possível misturar",
     );
 }

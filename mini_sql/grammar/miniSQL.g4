@@ -36,8 +36,14 @@ cte: ID (LPAREN ID (COMMA ID)* RPAREN)? AS LPAREN queryBody RPAREN ;
 queryBody: FROM ID (join)* SELECT selectList (WHERE condition)? ;
 
 // Permite selecionar múltiplos campos (ex: a, b, c) ou '*'
-selectList : columnRef (COMMA columnRef)*
+selectList : selectItem (COMMA selectItem)*
            | STAR ;
+
+selectItem : columnRef (AS ID)?                                      # columnSelectItem
+           | aggregateFunc LPAREN (columnRef | STAR) RPAREN (AS ID)? # aggregateSelectItem
+           ;
+
+aggregateFunc : MIN_FUNC | MAX_FUNC | AVG_FUNC | SUM_FUNC | COUNT_FUNC ;
 
 // Referência a uma coluna: `coluna` ou `tabela.coluna`.
 // O prefixo é necessário quando duas tabelas da query (FROM/JOIN/CTE) têm
@@ -96,6 +102,11 @@ LOAD : 'LOAD' | 'load';
 DESCRIBE : 'DESCRIBE' | 'describe' | 'DESC' | 'desc';
 WITH : 'WITH' | 'with';
 AS : 'AS' | 'as';
+MIN_FUNC : 'MIN' | 'min';
+MAX_FUNC : 'MAX' | 'max';
+AVG_FUNC : 'AVG' | 'avg';
+SUM_FUNC : 'SUM' | 'sum';
+COUNT_FUNC : 'COUNT' | 'count';
 
 // operadores lógicos, precisam estar antes do ID por regra do lexer
 AND : 'AND' | 'and';

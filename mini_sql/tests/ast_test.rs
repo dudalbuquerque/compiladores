@@ -27,10 +27,10 @@ fn test_ast_generation() {
 
     // Valida a lista de seleções (colunas `name` e `credit`)
     match &query.select {
-        SelectList::Columns(cols) => {
-            assert_eq!(cols, &vec!["name".to_string(), "credit".to_string()]);
+        SelectList::Items(items) => {
+            assert_eq!(items, &vec![col("name"), col("credit")]);
         }
-        _ => panic!("Esperava SelectList::Columns, mas recebeu SelectList::All"),
+        _ => panic!("Esperava SelectList::Items, mas recebeu SelectList::All"),
     }
 
     //Valida a estrutura das condições no WHERE
@@ -127,6 +127,11 @@ fn only_query(sql: &str) -> Query {
     }
 }
 
+/// Item de SELECT de coluna comum, sem alias.
+fn col(name: &str) -> SelectItem {
+    SelectItem::Column { name: name.to_string(), alias: None }
+}
+
 #[test]
 fn test_ast_cte_com_lista_de_colunas() {
     let query = only_query("WITH adultos (nome, anos) AS (FROM users SELECT name, age WHERE age >= 18) FROM adultos SELECT nome;");
@@ -136,7 +141,7 @@ fn test_ast_cte_com_lista_de_colunas() {
     assert_eq!(cte.name, "adultos");
     assert_eq!(cte.columns, Some(vec!["nome".to_string(), "anos".to_string()]));
     assert_eq!(cte.body.table, "users");
-    assert_eq!(cte.body.select, SelectList::Columns(vec!["name".into(), "age".into()]));
+    assert_eq!(cte.body.select, SelectList::Items(vec![col("name"), col("age")]));
     assert!(cte.body.condition.is_some());
 
     // o corpo principal lê a CTE
@@ -175,7 +180,7 @@ fn test_ast_coluna_qualificada() {
     // o nome qualificado é guardado como foi escrito; a resolução é no type checker
     assert_eq!(query.body.joins[0].condition.left, Value::Id("usuarios.id".to_string()));
     assert_eq!(query.body.joins[0].condition.right, Value::Id("pedidos.usuario_id".to_string()));
-    assert_eq!(query.body.select, SelectList::Columns(vec!["usuarios.nome".into(), "produto".into()]));
+    assert_eq!(query.body.select, SelectList::Items(vec![col("usuarios.nome"), col("produto")]));
     match &query.body.condition {
         Some(Condition::Expr(expr)) => assert_eq!(expr.left, Value::Id("pedidos.valor".to_string())),
         other => panic!("Esperava Condition::Expr, veio {other:?}"),
@@ -217,4 +222,139 @@ fn test_ast_tipos_de_join() {
     );
     let tabelas: Vec<&str> = query.body.joins.iter().map(|j| j.table.as_str()).collect();
     assert_eq!(tabelas, vec!["b", "c", "d", "e", "f"]);
+}
+
+
+#[test]
+fn test_ast_count_star_com_alias() {
+    let query = only_query("FROM cidades SELECT COUNT(*) AS total;");
+
+    assert_eq!(
+        query.body.select,
+        SelectList::Items(vec![SelectItem::Aggregate {
+            func: AggregateFunc::Count,
+            arg: AggArg::Star,
+            alias: Some("total".to_string()),
+        }])
+    );
+}
+
+#[test]
+fn test_ast_agregacao_com_coluna_sem_alias() {
+    let query = only_query("FROM cidades SELECT AVG(temp);");
+
+    assert_eq!(
+        query.body.select,
+        SelectList::Items(vec![SelectItem::Aggregate {
+            func: AggregateFunc::Avg,
+            arg: AggArg::Column("temp".to_string()),
+            alias: None,
+        }])
+    );
+}
+
+#[test]
+fn test_ast_todas_as_funcoes_e_minusculas() {
+    // palavras-chave em minúsculas também valem
+    let query = only_query("from t select min(a), max(a), avg(a), sum(a), count(a);");
+
+    let funcs: Vec<AggregateFunc> = match &query.body.select {
+        SelectList::Items(items) => items
+            .iter()
+            .map(|item| match item {
+                SelectItem::Aggregate { func, .. } => *func,
+                other => panic!("Esperava agregação, veio {other:?}"),
+            })
+            .collect(),
+        other => panic!("Esperava SelectList::Items, veio {other:?}"),
+    };
+
+    assert_eq!(
+        funcs,
+        vec![
+            AggregateFunc::Min,
+            AggregateFunc::Max,
+            AggregateFunc::Avg,
+            AggregateFunc::Sum,
+            AggregateFunc::Count,
+        ]
+    );
+}
+
+#[test]
+fn test_ast_alias_em_coluna_comum() {
+    let query = only_query("FROM cidades SELECT nome AS n, temp;");
+
+    assert_eq!(
+        query.body.select,
+        SelectList::Items(vec![
+            SelectItem::Column { name: "nome".to_string(), alias: Some("n".to_string()) },
+            SelectItem::Column { name: "temp".to_string(), alias: None },
+        ])
+    );
+}
+
+#[test]
+fn test_ast_agregacao_com_coluna_qualificada() {
+    let query = only_query("FROM a JOIN b ON a.id = b.id SELECT SUM(b.valor) AS soma;");
+
+    assert_eq!(
+        query.body.select,
+        SelectList::Items(vec![SelectItem::Aggregate {
+            func: AggregateFunc::Sum,
+            arg: AggArg::Column("b.valor".to_string()),
+            alias: Some("soma".to_string()),
+        }])
+    );
+}
+
+#[test]
+fn test_ast_agregacao_dentro_de_cte() {
+    let query = only_query("WITH t AS (FROM cidades SELECT COUNT(*) AS total) FROM t SELECT total;");
+
+    assert_eq!(
+        query.ctes[0].body.select,
+        SelectList::Items(vec![SelectItem::Aggregate {
+            func: AggregateFunc::Count,
+            arg: AggArg::Star,
+            alias: Some("total".to_string()),
+        }])
+    );
+    assert_eq!(query.body.select, SelectList::Items(vec![col("total")]));
+}
+
+#[test]
+fn test_ast_mistura_de_coluna_e_agregacao_e_aceita_pelo_parser() {
+    // A regra "não misturar sem GROUP BY" é do type checker, não do parser:
+    // a AST precisa ser gerada normalmente.
+    let query = only_query("FROM cidades SELECT nome, AVG(temp);");
+
+    match &query.body.select {
+        SelectList::Items(items) => {
+            assert_eq!(items.len(), 2);
+            assert!(!items[0].is_aggregate());
+            assert!(items[1].is_aggregate());
+        }
+        other => panic!("Esperava SelectList::Items, veio {other:?}"),
+    }
+}
+
+#[test]
+fn test_ast_star_so_com_count() {
+    let err = AstBuilder::parse_sql("FROM cidades SELECT SUM(*);").unwrap_err();
+    assert!(err.contains("só COUNT aceita *"), "{err}");
+
+    assert!(AstBuilder::parse_sql("FROM cidades SELECT COUNT(*);").is_ok());
+}
+
+#[test]
+fn test_select_item_output_name() {
+    let query = only_query("FROM t SELECT COUNT(*), AVG(temp) AS media, nome AS n, idade;");
+
+    let nomes: Vec<String> = match &query.body.select {
+        SelectList::Items(items) => items.iter().map(|i| i.output_name()).collect(),
+        other => panic!("Esperava SelectList::Items, veio {other:?}"),
+    };
+
+    assert_eq!(nomes, vec!["COUNT(*)", "media", "n", "idade"]);
 }

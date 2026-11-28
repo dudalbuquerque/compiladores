@@ -48,7 +48,7 @@ fn names_where(condition: Condition) -> Vec<String> {
     let query = simple(QueryBody {
         table: "users".into(),
         joins: vec![],
-        select: SelectList::Columns(vec!["name".into()]),
+        select: columns(&["name"]),
         condition: Some(condition),
     });
     execute_query(&query, &db())
@@ -120,7 +120,7 @@ fn select_projeta_na_ordem_pedida() {
     let query = simple(QueryBody {
         table: "users".into(),
         joins: vec![],
-        select: SelectList::Columns(vec!["credit".into(), "name".into()]),
+        select: columns(&["credit", "name"]),
         condition: None,
     });
     let result = execute_query(&query, &db()).unwrap();
@@ -134,7 +134,7 @@ fn saida_formatada_em_tabela() {
     let query = simple(QueryBody {
         table: "users".into(),
         joins: vec![],
-        select: SelectList::Columns(vec!["name".into(), "age".into()]),
+        select: columns(&["name", "age"]),
         condition: Some(cmp(id("age"), Operator::Less, Value::Int(20))),
     });
     let mut db = db();
@@ -263,6 +263,235 @@ fn null_com_and_falso_e_falso() {
     assert_eq!(names_where(c).len(), 5);
 }
 
+// ----- Funções de agregação ------------------------------------------------
+
+fn agg(func: AggregateFunc, column: Option<&str>, alias: Option<&str>) -> SelectItem {
+    SelectItem::Aggregate {
+        func,
+        arg: match column {
+            Some(name) => AggArg::Column(name.to_string()),
+            None => AggArg::Star,
+        },
+        alias: alias.map(|a| a.to_string()),
+    }
+}
+
+fn col_item(name: &str, alias: Option<&str>) -> SelectItem {
+    SelectItem::Column { name: name.to_string(), alias: alias.map(|a| a.to_string()) }
+}
+
+/// `FROM <table> SELECT <items> [WHERE ...]` executado direto no interpretador.
+fn run_items(table: &str, items: Vec<SelectItem>, condition: Option<Condition>) -> Result<mini_sql::table::Table, String> {
+    let query = simple(body(table, vec![], SelectList::Items(items), condition));
+    execute_query(&query, &db_all())
+}
+
+#[test]
+fn count_star_conta_as_linhas() {
+    let result = run_items("users", vec![agg(AggregateFunc::Count, None, None)], None).unwrap();
+
+    assert_eq!(result.rows, vec![vec!["5"]]);
+    assert_eq!(column_names(&result), vec!["COUNT(*)"]);
+    assert_eq!(result.columns[0].data_type, DataType::Int);
+}
+
+#[test]
+fn alias_vira_o_nome_da_coluna_do_resultado() {
+    let result = run_items("users", vec![agg(AggregateFunc::Count, None, Some("total"))], None).unwrap();
+
+    assert_eq!(column_names(&result), vec!["total"]);
+}
+
+#[test]
+fn count_star_respeita_o_where() {
+    let result = run_items(
+        "users",
+        vec![agg(AggregateFunc::Count, None, None)],
+        Some(cmp(id("age"), Operator::Less, Value::Int(18))),
+    )
+    .unwrap();
+
+    assert_eq!(result.rows, vec![vec!["1"]]);
+}
+
+#[test]
+fn count_star_sem_linhas_da_zero() {
+    let result = run_items(
+        "users",
+        vec![agg(AggregateFunc::Count, None, None)],
+        Some(cmp(id("age"), Operator::Greater, Value::Int(1000))),
+    )
+    .unwrap();
+
+    assert_eq!(result.rows, vec![vec!["0"]]);
+}
+
+#[test]
+fn count_coluna_ignora_null_mas_count_star_nao() {
+    // diego tem credit vazio
+    let result = run_items(
+        "users",
+        vec![agg(AggregateFunc::Count, Some("credit"), None), agg(AggregateFunc::Count, None, None)],
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(result.rows, vec![vec!["4", "5"]]);
+}
+
+#[test]
+fn count_de_coluna_de_texto_funciona() {
+    let result = run_items("users", vec![agg(AggregateFunc::Count, Some("name"), None)], None).unwrap();
+
+    assert_eq!(result.rows, vec![vec!["5"]]);
+}
+
+#[test]
+fn sum_avg_min_max_sobre_float() {
+    // pedidos.valor: 150, 80, 900, 200
+    let result = run_items(
+        "pedidos",
+        vec![
+            agg(AggregateFunc::Sum, Some("valor"), None),
+            agg(AggregateFunc::Avg, Some("valor"), None),
+            agg(AggregateFunc::Min, Some("valor"), None),
+            agg(AggregateFunc::Max, Some("valor"), None),
+        ],
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(result.rows, vec![vec!["1330", "332.5", "80", "900"]]);
+    assert_eq!(column_names(&result), vec!["SUM(valor)", "AVG(valor)", "MIN(valor)", "MAX(valor)"]);
+}
+
+#[test]
+fn tipos_do_resultado_das_agregacoes() {
+    // SUM/MIN/MAX mantêm o tipo da coluna (Int); AVG é sempre Float
+    let result = run_items(
+        "usuarios",
+        vec![
+            agg(AggregateFunc::Sum, Some("idade"), None),
+            agg(AggregateFunc::Max, Some("idade"), None),
+            agg(AggregateFunc::Avg, Some("idade"), None),
+        ],
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(result.rows[0][0], "77");
+    assert_eq!(result.rows[0][1], "30");
+    let types: Vec<DataType> = result.columns.iter().map(|c| c.data_type.clone()).collect();
+    assert_eq!(types, vec![DataType::Int, DataType::Int, DataType::Float]);
+}
+
+#[test]
+fn agregacao_sem_valores_da_null_e_count_da_zero() {
+    // nenhum usuário tem idade > 1000: SUM/AVG/MIN/MAX viram NULL (vazio), COUNT vira 0
+    let result = run_items(
+        "usuarios",
+        vec![
+            agg(AggregateFunc::Sum, Some("idade"), None),
+            agg(AggregateFunc::Avg, Some("idade"), None),
+            agg(AggregateFunc::Min, Some("idade"), None),
+            agg(AggregateFunc::Count, Some("idade"), None),
+        ],
+        Some(cmp(id("idade"), Operator::Greater, Value::Int(1000))),
+    )
+    .unwrap();
+
+    assert_eq!(result.rows, vec![vec!["", "", "", "0"]]);
+}
+
+#[test]
+fn agregacao_com_where_e_prefixo_em_join() {
+    // FROM usuarios JOIN pedidos ON usuarios.id = usuario_id SELECT SUM(pedidos.valor);
+    // Ana: 150 + 80, Bruno: 900
+    let query = simple(body(
+        "usuarios",
+        vec![join(JoinType::Inner, "pedidos", "usuarios.id", "usuario_id")],
+        SelectList::Items(vec![agg(AggregateFunc::Sum, Some("pedidos.valor"), Some("soma"))]),
+        None,
+    ));
+    let result = execute_query(&query, &db_all()).unwrap();
+
+    assert_eq!(result.rows, vec![vec!["1130"]]);
+    assert_eq!(column_names(&result), vec!["soma"]);
+}
+
+#[test]
+fn count_ignora_null_do_left_join() {
+    // LEFT JOIN: Carlos entra com valor NULL. COUNT(*) conta 4 linhas, COUNT(valor) só 3.
+    let query = simple(body(
+        "usuarios",
+        vec![join(JoinType::Left, "pedidos", "usuarios.id", "usuario_id")],
+        SelectList::Items(vec![agg(AggregateFunc::Count, None, None), agg(AggregateFunc::Count, Some("valor"), None)]),
+        None,
+    ));
+    let result = execute_query(&query, &db_all()).unwrap();
+
+    assert_eq!(result.rows, vec![vec!["4", "3"]]);
+}
+
+#[test]
+fn alias_em_coluna_comum() {
+    let result = run_items("usuarios", vec![col_item("nome", Some("n")), col_item("idade", None)], None).unwrap();
+
+    assert_eq!(column_names(&result), vec!["n", "idade"]);
+    assert_eq!(result.rows[0], vec!["Ana", "25"]);
+}
+
+#[test]
+fn cte_com_agregacao_e_lida_pelo_alias() {
+    // WITH t AS (FROM users SELECT COUNT(*) AS total) FROM t SELECT total WHERE total > 3;
+    let query = with(
+        vec![cte(
+            "t",
+            None,
+            body("users", vec![], SelectList::Items(vec![agg(AggregateFunc::Count, None, Some("total"))]), None),
+        )],
+        body("t", vec![], columns(&["total"]), Some(cmp(id("total"), Operator::Greater, Value::Int(3)))),
+    );
+    let result = execute_query(&query, &db()).unwrap();
+
+    assert_eq!(result.rows, vec![vec!["5"]]);
+}
+
+// ----- agregações: erros (proteção do interpretador) -----------------------
+// Em uso normal o type checker recusa essas queries antes de executar;
+// aqui o interpretador é chamado direto, para provar que ele também não aceita.
+
+#[test]
+fn misturar_coluna_e_agregacao_e_erro() {
+    let err = run_items(
+        "users",
+        vec![col_item("name", None), agg(AggregateFunc::Count, None, None)],
+        None,
+    )
+    .unwrap_err();
+
+    assert!(err.contains("GROUP BY"), "{err}");
+}
+
+#[test]
+fn sum_de_coluna_de_texto_e_erro() {
+    let err = run_items("users", vec![agg(AggregateFunc::Sum, Some("name"), None)], None).unwrap_err();
+
+    assert!(err.contains("exige coluna numérica"), "{err}");
+}
+
+#[test]
+fn star_so_vale_para_count() {
+    let err = run_items("users", vec![agg(AggregateFunc::Sum, None, None)], None).unwrap_err();
+
+    assert!(err.contains("só COUNT aceita *"), "{err}");
+}
+
+#[test]
+fn agregacao_de_coluna_inexistente_e_erro() {
+    assert!(run_items("users", vec![agg(AggregateFunc::Max, Some("nao_existe"), None)], None).is_err());
+}
+
 // ----- auxiliares para CTEs e JOINs --------------------------------------
 //
 // usuarios.csv: (1, Ana, 25) (2, Bruno, 30) (3, Carlos, 22)
@@ -279,12 +508,17 @@ fn db_all() -> Database {
     db
 }
 
-fn columns(names: &[&str]) -> SelectList {
-    SelectList::Columns(names.iter().map(|n| n.to_string()).collect())
-}
-
 fn body(table: &str, joins: Vec<Join>, select: SelectList, condition: Option<Condition>) -> QueryBody {
     QueryBody { table: table.to_string(), joins, select, condition }
+}
+
+fn columns(names: &[&str]) -> SelectList {
+    SelectList::Items(
+        names
+            .iter()
+            .map(|n| SelectItem::Column { name: n.to_string(), alias: None })
+            .collect(),
+    )
 }
 
 /// `[INNER|LEFT] JOIN table ON left = right`

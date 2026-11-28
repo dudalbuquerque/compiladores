@@ -54,7 +54,7 @@ pub struct Join {
     pub condition: Expr,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {
     Inner,
     Left,
@@ -64,9 +64,41 @@ pub enum JoinType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectList {
-    Columns(Vec<String>),
     All,
+    Items(Vec<SelectItem>),
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AggregateFunc {
+    Min,
+    Max,
+    Avg,
+    Sum,
+    Count,
+}
+
+/// Argumento de uma agregação: `COUNT(*)` usa `Star`; as demais usam coluna.
+/// Só `COUNT` aceita `Star`: `SUM(*)`, `AVG(*)` etc. devem dar erro
+/// (a checagem fica no builder ou no executor).
+#[derive(Debug, Clone, PartialEq)]
+pub enum AggArg {
+    Star,
+    Column(String), // "coluna" ou "tabela.coluna"
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SelectItem {
+    Column {
+        name: String, // "coluna" ou "tabela.coluna"
+        alias: Option<String>,
+    },
+    Aggregate {
+        func: AggregateFunc,
+        arg: AggArg,
+        alias: Option<String>,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Condition {
     Not(Box<Condition>),
@@ -99,7 +131,7 @@ pub enum Value {
     Boolean(bool),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operator {
     Equal,
     NotEqual,
@@ -142,5 +174,42 @@ impl std::fmt::Display for Operator {
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} {}", self.left, self.op, self.right)
+    }
+}
+
+impl std::fmt::Display for AggregateFunc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            AggregateFunc::Min => "MIN",
+            AggregateFunc::Max => "MAX",
+            AggregateFunc::Avg => "AVG",
+            AggregateFunc::Sum => "SUM",
+            AggregateFunc::Count => "COUNT",
+        };
+        write!(f, "{name}")
+    }
+}
+
+impl std::fmt::Display for AggArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AggArg::Star => write!(f, "*"),
+            AggArg::Column(c) => write!(f, "{c}"),
+        }
+    }
+}
+
+impl SelectItem {
+    pub fn output_name(&self) -> String {
+        match self {
+            SelectItem::Column { name, alias } => alias.clone().unwrap_or_else(|| name.clone()),
+            SelectItem::Aggregate { func, arg, alias } => {
+                alias.clone().unwrap_or_else(|| format!("{func}({arg})"))
+            }
+        }
+    }
+
+    pub fn is_aggregate(&self) -> bool {
+        matches!(self, SelectItem::Aggregate { .. })
     }
 }

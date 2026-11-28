@@ -22,7 +22,10 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{Condition, Cte, Describe, Expr, ExprIn, Join, Load, Operator, Query, QueryBody, SelectList, Statement, Value};
+use crate::ast::{
+    AggArg, AggregateFunc, Condition, Cte, Describe, Expr, ExprIn, Join, Load, Operator, Query,
+    QueryBody, SelectItem, SelectList, Statement, Value,
+};
 use crate::csv_loader::table_name_from_path;
 use crate::table::{rename_columns, with_source, Column, DataType, Database, Table};
 
@@ -182,21 +185,78 @@ fn check_query_body(body: &QueryBody, env: &Env) -> TypeResult<Vec<Column>> {
 
     // Esquema de saída: `*` devolve o escopo inteiro; uma lista devolve só
     // as colunas pedidas, na ordem pedida, com o tipo que já tinham.
+   // Esquema de saída: `*` devolve o escopo inteiro; uma lista de itens 
+    // devolve as colunas normais e/ou as geradas pelas funções de agregação.
     let output = match &body.select {
         SelectList::All => scope_table.columns,
-        SelectList::Columns(names) => names
-            .iter()
-            .map(|name| {
-                // `SELECT pedidos.id` produz uma coluna chamada `id` (sem o prefixo),
-                // como no SQL. Por isso `SELECT usuarios.id, pedidos.id` dentro de
-                // uma CTE dá coluna repetida e pede a lista de nomes.
-                let index = scope_table.resolve(name)?;
-                Ok(scope_table.columns[index].clone())
-            })
-            .collect::<TypeResult<Vec<_>>>()?,
+        SelectList::Items(items) => check_aggregates(items, &scope_table)?,
     };
 
     Ok(output)
+}
+
+/// Verifica a lista de itens do SELECT e devolve o esquema de saída.
+/// Precisa produzir exatamente as mesmas colunas (nome e tipo) que o interpretador.
+fn check_aggregates(items: &[SelectItem], scope_table: &Table) -> TypeResult<Vec<Column>> {
+    // Sem GROUP BY, misturar coluna comum com agregação não tem significado.
+    let aggregates = items.iter().filter(|item| item.is_aggregate()).count();
+    if aggregates > 0 && aggregates < items.len() {
+        return Err("Não é possível misturar colunas comuns e funções de agregação sem GROUP BY".to_string());
+    }
+
+    let mut result_columns = Vec::new();
+
+    for item in items {
+        match item {
+            SelectItem::Column { name, alias } => {
+                let index = scope_table.resolve(name)?;
+                let mut column = scope_table.columns[index].clone();
+                if let Some(alias) = alias {
+                    column.name = alias.clone();
+                    column.source = None;
+                }
+                result_columns.push(column);
+            }
+            SelectItem::Aggregate { func, arg, .. } => {
+                let data_type = aggregate_type(*func, arg, scope_table)?;
+                result_columns.push(Column { name: item.output_name(), data_type, source: None });
+            }
+        }
+    }
+
+    Ok(result_columns)
+}
+
+/// Tipo do resultado de uma agregação (e validação do argumento).
+///   COUNT(*) / COUNT(col) -> Int, para qualquer tipo de coluna
+///   AVG(col)              -> Float
+///   SUM/MIN/MAX(col)      -> o tipo da coluna (só numéricas)
+fn aggregate_type(func: AggregateFunc, arg: &AggArg, scope_table: &Table) -> TypeResult<DataType> {
+    let column_name = match arg {
+        AggArg::Star => {
+            if func != AggregateFunc::Count {
+                return Err(format!("{func}(*) não é permitido; só COUNT aceita *"));
+            }
+            return Ok(DataType::Int);
+        }
+        AggArg::Column(name) => name,
+    };
+
+    let index = scope_table.resolve(column_name)?;
+    let column = &scope_table.columns[index];
+
+    if func == AggregateFunc::Count {
+        return Ok(DataType::Int);
+    }
+
+    if !matches!(column.data_type, DataType::Int | DataType::Float) {
+        return Err(format!(
+            "{func}({column_name}) exige coluna numérica, mas '{}' é {}",
+            column.name, column.data_type
+        ));
+    }
+
+    Ok(if func == AggregateFunc::Avg { DataType::Float } else { column.data_type.clone() })
 }
 
 fn check_joins(

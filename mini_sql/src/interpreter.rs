@@ -12,7 +12,10 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use crate::ast::{Condition, Describe, JoinType, Expr, ExprIn, Load, Operator, Query, QueryBody, SelectList, Statement, Value};
+use crate::ast::{
+    AggArg, AggregateFunc, Condition, Describe, Expr, ExprIn, JoinType, Load, Operator, Query,
+    QueryBody, SelectItem, SelectList, Statement, Value,
+};
 use crate::csv_loader::{load_csv, table_name_from_path};
 use crate::table::{rename_columns, with_source, Column, DataType, Database, Table};
 
@@ -169,25 +172,25 @@ fn execute_body(query: &QueryBody, env: &Env) -> ExecResult<Table> {
     // Começa com a tabela principal do FROM (pode ser uma tabela carregada ou uma CTE),
     // com as colunas marcadas pelo nome dela, igual ao type checker.
     let base = env.lookup(&query.table)?;
-    let mut current_table = Table { columns: with_source(&base.columns, &query.table), rows: base.rows.clone() };
+    let mut current_table = Table {
+        columns: with_source(&base.columns, &query.table),
+        rows: base.rows.clone(),
+    };
 
     // Aplica cada JOIN em sequência
     for join in &query.joins {
         let right_table = env.lookup(&join.table)?;
-        current_table = execute_join(&current_table, right_table, &join.table, &join.join_type, &join.condition)?;
+        current_table = execute_join(
+            &current_table,
+            right_table,
+            &join.table,
+            &join.join_type,
+            &join.condition,
+        )?;
     }
 
-    // Projeção: índices das colunas pedidas no SELECT (sobre a tabela já com os joins aplicados)
-    let selected: Vec<usize> = match &query.select {
-        SelectList::All => (0..current_table.columns.len()).collect(),
-        SelectList::Columns(names) => names
-            .iter()
-            .map(|name| column_index(name, &current_table))
-            .collect::<ExecResult<_>>()?,
-    };
-
-    // Seleção: mantém só as linhas em que o WHERE é verdadeiro.
-    let mut rows = Vec::new();
+    // 1. Filtra primeiro todas as linhas onde o WHERE é verdadeiro
+    let mut filtered_rows = Vec::new();
     for row in &current_table.rows {
         let keep = match &query.condition {
             Some(condition) => evaluate_condition(condition, row, &current_table)? == Some(true),
@@ -195,13 +198,140 @@ fn execute_body(query: &QueryBody, env: &Env) -> ExecResult<Table> {
         };
 
         if keep {
-            rows.push(selected.iter().map(|&i| row[i].clone()).collect());
+            filtered_rows.push(row);
         }
     }
 
-    let columns = selected.iter().map(|&i| current_table.columns[i].clone()).collect();
+    // 2. Trata a projeção (SELECT) baseada no novo SelectList
+    match &query.select {
+        SelectList::All => {
+            let rows = filtered_rows.into_iter().cloned().collect();
+            Ok(Table {
+                columns: current_table.columns,
+                rows,
+            })
+        }
+        SelectList::Items(items) => {
+            let aggregates = items.iter().filter(|item| item.is_aggregate()).count();
 
-    Ok(Table { columns, rows })
+            if aggregates == 0 {
+                // Só colunas comuns: projeção linha a linha, aplicando alias.
+                let mut selected = Vec::new();
+                let mut columns = Vec::new();
+
+                for item in items {
+                    let SelectItem::Column { name, alias } = item else {
+                        return Err("item de select inesperado".to_string());
+                    };
+                    let idx = column_index(name, &current_table)?;
+                    let mut column = current_table.columns[idx].clone();
+                    if let Some(alias) = alias {
+                        column.name = alias.clone();
+                        column.source = None;
+                    }
+                    selected.push(idx);
+                    columns.push(column);
+                }
+
+                let rows = filtered_rows
+                    .iter()
+                    .map(|row| selected.iter().map(|&i| row[i].clone()).collect())
+                    .collect();
+
+                Ok(Table { columns, rows })
+            } else if aggregates < items.len() {
+                Err("Não é possível misturar colunas comuns e funções de agregação sem GROUP BY".to_string())
+            } else {
+                // Só agregações: as linhas filtradas viram uma única linha.
+                let mut columns = Vec::new();
+                let mut row = Vec::new();
+
+                for item in items {
+                    let SelectItem::Aggregate { func, arg, .. } = item else {
+                        return Err("item de select inesperado".to_string());
+                    };
+                    let (value, data_type) = evaluate_aggregate(*func, arg, &filtered_rows, &current_table)?;
+                    columns.push(Column { name: item.output_name(), data_type, source: None });
+                    row.push(value);
+                }
+
+                Ok(Table { columns, rows: vec![row] })
+            }
+        }
+    }
+}
+
+/// Calcula uma agregação sobre as linhas já filtradas.
+/// Devolve o valor (texto, como o resto da tabela) e o tipo da coluna de resultado.
+/// Células NULL (vazias) são ignoradas; conjunto sem valores dá NULL,
+/// exceto COUNT, que dá 0.
+fn evaluate_aggregate(
+    func: AggregateFunc,
+    arg: &AggArg,
+    rows: &[&Vec<String>],
+    table: &Table,
+) -> ExecResult<(String, DataType)> {
+    let column_name = match arg {
+        AggArg::Star => {
+            if func != AggregateFunc::Count {
+                return Err(format!("{func}(*) não é permitido; só COUNT aceita *"));
+            }
+            return Ok((rows.len().to_string(), DataType::Int));
+        }
+        AggArg::Column(name) => name,
+    };
+
+    let idx = column_index(column_name, table)?;
+    let column = &table.columns[idx];
+
+    // Células não nulas, de qualquer tipo.
+    let mut cells = Vec::new();
+    for row in rows {
+        match parse_cell(&row[idx], column)? {
+            Cell::Null => {}
+            cell => cells.push(cell),
+        }
+    }
+
+    // COUNT(coluna) funciona com qualquer tipo.
+    if func == AggregateFunc::Count {
+        return Ok((cells.len().to_string(), DataType::Int));
+    }
+
+    // As demais só fazem sentido em colunas numéricas.
+    if !matches!(column.data_type, DataType::Int | DataType::Float) {
+        return Err(format!(
+            "{func}({column_name}) exige coluna numérica, mas '{}' é {}",
+            column.name, column.data_type
+        ));
+    }
+
+    let numbers: Vec<f64> = cells
+        .iter()
+        .filter_map(|cell| match cell {
+            Cell::Int(n) => Some(*n as f64),
+            Cell::Float(n) => Some(*n),
+            _ => None,
+        })
+        .collect();
+
+    // AVG sempre dá Float; SUM/MIN/MAX mantêm o tipo da coluna.
+    let result_type = if func == AggregateFunc::Avg { DataType::Float } else { column.data_type.clone() };
+
+    if numbers.is_empty() {
+        return Ok((String::new(), result_type)); // NULL
+    }
+
+    let sum: f64 = numbers.iter().sum();
+    let value = match func {
+        AggregateFunc::Sum => sum,
+        AggregateFunc::Avg => sum / numbers.len() as f64,
+        AggregateFunc::Min => numbers.iter().cloned().fold(f64::INFINITY, f64::min),
+        AggregateFunc::Max => numbers.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+        AggregateFunc::Count => numbers.len() as f64, // já tratado acima
+    };
+
+    Ok((value.to_string(), result_type))
 }
 
 fn execute_join(

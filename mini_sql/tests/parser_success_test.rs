@@ -303,3 +303,112 @@ fn test_left_outer_join() {
 fn test_joins_encadeados_de_tipos_diferentes() {
     assert!(parse("FROM a JOIN b ON a.x = b.x LEFT JOIN c ON c.y = b.y RIGHT JOIN d ON d.z = c.z FULL JOIN e ON e.w = d.w SELECT *;"));
 }
+
+// Funções de agregação
+
+#[test]
+fn test_count_star() {
+    assert!(parse("FROM users SELECT COUNT(*);"));
+}
+
+#[test]
+fn test_count_star_minus() {
+    assert!(parse("from users select count(*);"));
+}
+
+#[test]
+fn test_count_star_com_alias() {
+    assert!(parse("FROM users SELECT COUNT(*) AS total;"));
+}
+
+#[test]
+fn test_count_star_com_alias_minus() {
+    assert!(parse("from users select count(*) as total;"));
+}
+
+#[test]
+fn test_agregacao_com_coluna() {
+    assert!(parse("FROM users SELECT AVG(age);"));
+}
+
+#[test]
+fn test_agregacao_com_coluna_minus() {
+    assert!(parse("from users select avg(age);"));
+}
+
+#[test]
+fn test_todas_as_funcoes() {
+    assert!(parse("FROM users SELECT MIN(age), MAX(age), AVG(age), SUM(age), COUNT(age);"));
+}
+
+#[test]
+fn test_todas_as_funcoes_minus() {
+    assert!(parse("from users select min(age), max(age), avg(age), sum(age), count(age);"));
+}
+
+#[test]
+fn test_varias_agregacoes_com_alias() {
+    assert!(parse("FROM users SELECT AVG(age) AS media, MAX(credit) AS maior, COUNT(*) AS total;"));
+}
+
+#[test]
+fn test_agregacao_com_where() {
+    assert!(parse("FROM users SELECT COUNT(*) AS total WHERE age >= 18 AND active = TRUE;"));
+}
+
+#[test]
+fn test_agregacao_com_coluna_qualificada() {
+    assert!(parse("FROM usuarios JOIN pedidos ON usuarios.id = pedidos.usuario_id SELECT SUM(pedidos.valor) AS soma;"));
+}
+
+#[test]
+fn test_agregacao_com_left_join() {
+    assert!(parse("FROM usuarios LEFT JOIN pedidos ON usuarios.id = usuario_id SELECT COUNT(*), COUNT(valor);"));
+}
+
+#[test]
+fn test_agregacao_dentro_de_cte() {
+    assert!(parse("WITH t AS (FROM users SELECT COUNT(*) AS total) FROM t SELECT total;"));
+}
+
+#[test]
+fn test_agregacao_na_query_principal_sobre_cte() {
+    assert!(parse("WITH adultos AS (FROM users SELECT name, age WHERE age >= 18) FROM adultos SELECT AVG(age) AS media;"));
+}
+
+// Alias em colunas comuns
+
+#[test]
+fn test_alias_em_coluna() {
+    assert!(parse("FROM users SELECT name AS n;"));
+}
+
+#[test]
+fn test_alias_em_coluna_minus() {
+    assert!(parse("from users select name as n, age as idade;"));
+}
+
+#[test]
+fn test_alias_em_coluna_qualificada() {
+    assert!(parse("FROM usuarios JOIN pedidos ON usuarios.id = usuario_id SELECT usuarios.nome AS cliente, produto;"));
+}
+
+#[test]
+fn test_alias_misturado_com_coluna_sem_alias() {
+    assert!(parse("FROM users SELECT name AS n, age, credit AS saldo;"));
+}
+
+// O parser aceita estas; a recusa vem de outra camada
+
+#[test]
+fn test_sum_de_star_passa_no_parser() {
+    // "só COUNT aceita *" não é regra sintática: quem recusa é o AstBuilder
+    // (ver test_ast_star_so_com_count).
+    assert!(parse("FROM users SELECT SUM(*);"));
+}
+
+#[test]
+fn test_mistura_de_coluna_e_agregacao_passa_no_parser() {
+    // sem GROUP BY isso não tem significado, mas a regra é do type checker
+    assert!(parse("FROM users SELECT name, AVG(age);"));
+}

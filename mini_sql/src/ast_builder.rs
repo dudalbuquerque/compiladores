@@ -4,7 +4,7 @@ use crate::mini_sql_parser::{
     self, miniSQLVisitor, AndLabelContext, ConditionContext, CteContext, ExprContext, ExprCondLabelContext,
     ExpressaoInContext, InCondLabelContext, JoinContext, MiniSqlParser, NotLabelContext, OrLabelContext,
     ParensLabelContext, ProgramContext, QueryBodyContext, QueryContext, SelectListContext, StatementContext,
-    ValueContext,
+    AggregateSelectItemLabelContext, ColumnSelectItemLabelContext, ValueContext,
 };
 
 use std::sync::{Arc, Mutex};
@@ -175,7 +175,7 @@ impl AstBuilder { //metodos associados
             .map(|j| Self::build_join(&j))
             .collect::<Res<Vec<_>>>()?;
 
-        let select = Self::build_select_list(&ctx.select_list().map_err(miss)?);
+        let select = Self::build_select_list(&ctx.select_list().map_err(miss)?)?;
 
         let condition = match ctx.condition() {
             Some(c) => Some(Self::build_condition(&c)?),
@@ -185,20 +185,20 @@ impl AstBuilder { //metodos associados
         Ok(QueryBody { table, joins, select, condition })
     }
 
-    fn build_select_list(ctx: &SelectListContext<'_>) -> SelectList {
-        // Os tokens são concatenados sem espaço: "*" ou "a,b,c".
-        let text = ctx.text().to_string();
-        if text == "*" {
-            SelectList::All
-        } else {
-            SelectList::Columns(
-                text.split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect(),
-            )
+    fn build_select_list(ctx: &SelectListContext<'_>) -> Res<SelectList> {
+        // selectList : selectItem (COMMA selectItem)* | STAR
+        if ctx.star_token().is_some() {
+            return Ok(SelectList::All);
         }
+
+        let items = ctx
+            .select_item_children()
+            .map(|item| SelectItemBuilder.visit(&item))
+            .collect::<Res<Vec<_>>>()?;
+
+        Ok(SelectList::Items(items))
     }
+
 
     fn build_join(ctx: &JoinContext<'_>) -> Res<Join> {
         // O texto do nó vem com os tokens colados ("LEFTOUTERJOINpedidos..."),
@@ -294,6 +294,50 @@ impl AstBuilder { //metodos associados
 /// Visitor do parser
 // complexidade-> recursão , alternativas rotuladas
 struct ConditionBuilder;
+
+/// Visitor de `selectItem` (duas alternativas rotuladas).
+struct SelectItemBuilder;
+
+impl miniSQLVisitor for SelectItemBuilder {
+    type Result = Res<SelectItem>;
+
+    fn default_result(&mut self) -> Self::Result {
+        Err("item de select não reconhecido".to_string())
+    }
+
+    // columnRef (AS ID)?
+    fn visit_column_select_item_label(&mut self, ctx: &ColumnSelectItemLabelContext) -> Self::Result {
+        let name = ctx.column_ref().map_err(miss)?.text().to_string();
+        let alias = ctx.id_token().map(|t| t.to_string());
+        Ok(SelectItem::Column { name, alias })
+    }
+
+    // aggregateFunc LPAREN (columnRef | STAR) RPAREN (AS ID)?
+    fn visit_aggregate_select_item_label(&mut self, ctx: &AggregateSelectItemLabelContext) -> Self::Result {
+        let func_text = ctx.aggregate_func().map_err(miss)?.text().to_uppercase();
+        let func = match func_text.as_str() {
+            "MIN" => AggregateFunc::Min,
+            "MAX" => AggregateFunc::Max,
+            "AVG" => AggregateFunc::Avg,
+            "SUM" => AggregateFunc::Sum,
+            "COUNT" => AggregateFunc::Count,
+            _ => return Err(format!("função de agregação desconhecida: {func_text}")),
+        };
+
+        // Sem columnRef, o argumento só pode ser o STAR.
+        let arg = match ctx.column_ref() {
+            Some(col) => AggArg::Column(col.text().to_string()),
+            None => AggArg::Star,
+        };
+
+        if arg == AggArg::Star && func != AggregateFunc::Count {
+            return Err(format!("{func}(*) não é permitido; só COUNT aceita *"));
+        }
+
+        let alias = ctx.id_token().map(|t| t.to_string());
+        Ok(SelectItem::Aggregate { func, arg, alias })
+    }
+}
 
 impl miniSQLVisitor for ConditionBuilder {
     type Result = Res<Condition>;

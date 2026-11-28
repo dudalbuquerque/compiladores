@@ -299,3 +299,98 @@ fn test_dois_tipos_de_join() {
 fn test_right_join_sem_on() {
     assert!(parse_error("FROM usuarios RIGHT JOIN pedidos SELECT *;"));
 }
+
+// Funções de agregação
+
+#[test]
+fn test_agregacao_sem_argumento() {
+    assert!(parse_error("FROM users SELECT COUNT();"));
+}
+
+#[test]
+fn test_agregacao_sem_parenteses() {
+    assert!(parse_error("FROM users SELECT COUNT;"));
+}
+
+#[test]
+fn test_agregacao_sem_fechar_parenteses() {
+    assert!(parse_error("FROM users SELECT AVG(age;"));
+}
+
+#[test]
+fn test_agregacao_sem_abrir_parenteses() {
+    assert!(parse_error("FROM users SELECT AVG age);"));
+}
+
+#[test]
+fn test_agregacao_com_dois_argumentos() {
+    assert!(parse_error("FROM users SELECT SUM(age, credit);"));
+}
+
+#[test]
+fn test_agregacao_aninhada() {
+    assert!(parse_error("FROM users SELECT SUM(COUNT(age));"));
+}
+
+#[test]
+fn test_agregacao_com_distinct_nao_existe() {
+    // DISTINCT não faz parte da gramática
+    assert!(parse_error("FROM users SELECT COUNT(DISTINCT age);"));
+}
+
+#[test]
+fn test_alias_sem_nome() {
+    assert!(parse_error("FROM users SELECT COUNT(*) AS;"));
+}
+
+#[test]
+fn test_alias_com_palavra_reservada() {
+    // `count` é token de função, não ID: não pode ser alias
+    assert!(parse_error("FROM users SELECT COUNT(*) AS count;"));
+}
+
+#[test]
+fn test_coluna_com_nome_de_funcao() {
+    // mesma limitação: `max` não pode ser nome de coluna
+    assert!(parse_error("FROM users SELECT max;"));
+}
+
+#[test]
+fn test_virgula_sobrando_apos_agregacao() {
+    assert!(parse_error("FROM users SELECT COUNT(*), ;"));
+}
+
+#[test]
+fn test_agregacao_no_where_nao_existe() {
+    // sem HAVING/subquery, agregação só vale no SELECT
+    assert!(parse_error("FROM users SELECT name WHERE COUNT(*) > 1;"));
+}
+
+#[test]
+fn test_agregacao_sem_select_list() {
+    assert!(parse_error("FROM users COUNT(*);"));
+}
+
+// Casos válidos (o parser deve aceitar)
+
+#[test]
+fn test_agregacoes_validas() {
+    assert!(!parse_error("FROM users SELECT COUNT(*);"));
+    assert!(!parse_error("FROM users SELECT COUNT(*) AS total;"));
+    assert!(!parse_error("FROM users SELECT AVG(age), MAX(credit) AS maior;"));
+    assert!(!parse_error("FROM users SELECT name AS n, age;"));
+    assert!(!parse_error("FROM a JOIN b ON a.id = b.id SELECT SUM(b.valor);"));
+}
+
+#[test]
+fn test_agregacoes_validas_minusculas() {
+    assert!(!parse_error("from users select count(*) as total;"));
+    assert!(!parse_error("from users select min(age), avg(age);"));
+}
+
+#[test]
+fn test_sum_de_star_passa_no_parser() {
+    // A regra "só COUNT aceita *" não é sintática: o parser aceita,
+    // e quem recusa é o AstBuilder (ver test_ast_star_so_com_count).
+    assert!(!parse_error("FROM users SELECT SUM(*);"));
+}
